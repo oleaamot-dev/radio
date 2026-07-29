@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application>
+  <id type="desktop">gtk-radio.desktop</id>
+  <_name>Live Democracy Radio on GNOME</_name>
+  <_summary>Listen to Live Democracy on GNOME</_summary>
+  <licence>CC0</licence>
+  <description>
+    <p>
+      Radio 78.0 is a Free Software program that allows you easily
+      listen to Live Democracy Radio broadcasts under GNOME.
+    </p>
+    <p>
+      Radio 78.0 is developed on the GNOME desktop platform and
+      it requires GTK4, Clutter and GStreamer 1.0 for playback.
+    </p>
+    <p>    
+    Enjoy Live Democracy Radio broadcasts under GNOME.
+    </p>
+  </description>
+  <url type="homepage">https://www.gtkradio.org/</url>
+  <screenshots>
+    <screenshot type="default">https://www.gtkradio.org/screenshot.png</screenshot>
+  </screenshots>
+  <updatecontact>ole@aamot.org</updatecontact>
+</application>

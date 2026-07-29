@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>GNOME Radio Studio</title>
+
+<link rel="stylesheet"
+      href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<style>
+:root {
+    --bg: #1e1e1e;
+    --card: #2b2b2b;
+    --surface: #3a3a3a;
+    --accent: #3584e4;
+    --text: #eeeeee;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    width: 100%;
+    max-width: 420px;
+}
+
+h1 {
+    text-align: center;
+    font-weight: 500;
+    margin-bottom: 20px;
+}
+
+.card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.4);
+}
+
+label {
+    display: block;
+    margin-top: 12px;
+    margin-bottom: 6px;
+}
+
+select,
+button,
+input {
+    width: 100%;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    background: var(--surface);
+    color: white;
+    font-size: 14px;
+}
+
+button {
+    background: var(--accent);
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 12px;
+}
+
+button:hover {
+    filter: brightness(1.05);
+}
+
+#status {
+    margin-top: 12px;
+    text-align: center;
+    color: #bdbdbd;
+    font-size: 14px;
+}
+
+canvas {
+    margin-top: 15px;
+    width: 100%;
+    height: 80px;
+    display: block;
+    background: #111;
+    border-radius: 10px;
+}
+
+#map {
+    margin-top: 15px;
+    width: 100%;
+    height: 280px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.leaflet-container {
+    background: #222;
+}
+
+.leaflet-popup-content-wrapper {
+    background: #2e3436;
+    color: white;
+    border-radius: 12px;
+}
+
+.leaflet-popup-tip {
+    background: #2e3436;
+}
+
+.gnome-marker {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(
+        180deg,
+        #62a0ea,
+        #3584e4
+    );
+    border: 2px solid white;
+    box-shadow:
+        0 0 0 2px rgba(53,132,228,.3),
+        0 4px 12px rgba(0,0,0,.4);
+    transition: transform .2s;
+}
+
+.gnome-marker:hover {
+    transform: scale(1.15);
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📻 GNOME Radio Studio</h1>
+
+<div class="card">
+
+<label>Station</label>
+
+<select id="stationSelect">
+    <option value="http://cdn0-47115-liveicecast0.dna.contentdelivery.net:80/sport_aac_h">
+        NRK Sport (Norway)
+    </option>
+
+    <option value="http://cdn0-47115-liveicecast0.dna.contentdelivery.net:80/p1pluss_aac_h">
+        NRK P1+ (Norway)
+    </option>
+
+    <option value="https://p4.p4groupaudio.com/P04_AH">
+        P4 Radio Hele Norge (Norway)
+    </option>      
+    
+```
+<option value="http://stream.live.vc.bbcmedia.co.uk/bbc_world_service">
+    BBC World Service (United Kingdom)
+</option>
+
+<option value="https://npr-ice.streamguys1.com/live.mp3">
+    NPR (United States)
+</option>
+```
+
+</select>
+
+<button id="playBtn">▶ Play</button>
+
+<div id="status">Ready</div>
+
+<label>Volume</label>
+
+<input
+ type="range"
+ id="volume"
+ min="0"
+ max="1"
+ step="0.01"
+ value="0.5">
+
+<canvas id="visualizer"></canvas>
+
+<div id="map"></div>
+
+</div>
+</div>
+
+<script>
+const stations = {
+    "http://cdn0-47115-liveicecast0.dna.contentdelivery.net:80/sport_aac_h": {
+        name: "NRK Sport",
+        lat: 59.9139,
+        lon: 10.7522
+    },
+
+    "http://cdn0-47115-liveicecast0.dna.contentdelivery.net:80/p1pluss_aac_h": {
+        name: "NRK P1+",
+        lat: 59.9139,
+        lon: 10.7522
+    },
+
+    "https://p4.p4groupaudio.com/P04_AH": {
+        name: "P4 Radio Hele Norge",
+	lat: 61.1207,
+	lon: 10.4439
+    },
+    
+    "http://stream.live.vc.bbcmedia.co.uk/bbc_world_service": {
+        name: "BBC World Service",
+        lat: 51.5074,
+        lon: -0.1278
+    },
+
+    "https://npr-ice.streamguys1.com/live.mp3": {
+        name: "NPR",
+        lat: 38.9072,
+        lon: -77.0369
+    }
+};
+
+const audio = new Audio();
+audio.crossOrigin = "anonymous";
+
+const AudioCtx =
+    window.AudioContext ||
+    window.webkitAudioContext;
+
+const ctx = new AudioCtx();
+
+const source =
+    ctx.createMediaElementSource(audio);
+
+const analyser = ctx.createAnalyser();
+
+source.connect(analyser);
+analyser.connect(ctx.destination);
+
+const stationSelect =
+    document.getElementById("stationSelect");
+
+const playBtn =
+    document.getElementById("playBtn");
+
+const volumeSlider =
+    document.getElementById("volume");
+
+const status =
+    document.getElementById("status");
+
+const canvas =
+    document.getElementById("visualizer");
+
+const cctx =
+    canvas.getContext("2d");
+
+/* -------------------------
+   Canvas
+-------------------------- */
+
+function resizeCanvas() {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+}
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
+
+resizeCanvas();
+
+/* -------------------------
+   Storage
+-------------------------- */
+
+const savedStation =
+    localStorage.getItem("station");
+
+const savedVolume =
+    localStorage.getItem("volume");
+
+if (savedStation)
+    stationSelect.value = savedStation;
+
+if (savedVolume)
+    volumeSlider.value = savedVolume;
+
+audio.src = stationSelect.value;
+audio.volume =
+    Number(volumeSlider.value) || 0.5;
+
+/* -------------------------
+   Map
+-------------------------- */
+
+const map = L.map("map")
+    .setView([55, 10], 3);
+
+L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+        attribution:
+            "&copy; OpenStreetMap contributors"
+    }
+).addTo(map);
+
+const gnomeIcon = L.divIcon({
+    className: "",
+    html:
+        '<div class="gnome-marker"></div>',
+    iconSize: [22,22],
+    iconAnchor: [11,11]
+});
+
+const markerObjects = {};
+
+Object.values(stations).forEach(
+    station => {
+
+        const marker = L.marker(
+            [station.lat, station.lon],
+            { icon: gnomeIcon }
+        )
+        .addTo(map)
+        .bindPopup(
+            `<b>${station.name}</b><br>Radio Station`
+        );
+
+        markerObjects[station.name] =
+            marker;
+    }
+);
+
+function focusStation() {
+
+    const station =
+        stations[stationSelect.value];
+
+    if (!station) return;
+
+    map.flyTo(
+        [station.lat, station.lon],
+        6,
+        {
+            duration: 1.5
+        }
+    );
+
+    markerObjects[
+        station.name
+    ].openPopup();
+
+    status.textContent =
+        station.name;
+}
+
+focusStation();
+
+/* -------------------------
+   Controls
+-------------------------- */
+
+stationSelect.addEventListener(
+    "change",
+    () => {
+
+        audio.src =
+            stationSelect.value;
+
+        localStorage.setItem(
+            "station",
+            stationSelect.value
+        );
+
+        focusStation();
+
+        if (!audio.paused) {
+            audio.play();
+        }
+    }
+);
+
+volumeSlider.addEventListener(
+    "input",
+    () => {
+
+        audio.volume =
+            volumeSlider.value;
+
+        localStorage.setItem(
+            "volume",
+            volumeSlider.value
+        );
+    }
+);
+
+playBtn.addEventListener(
+    "click",
+    async () => {
+
+        try {
+
+            await ctx.resume();
+
+            if (audio.paused) {
+
+                await audio.play();
+
+            } else {
+
+                audio.pause();
+
+            }
+
+        } catch (err) {
+
+            console.error(err);
+
+            alert(
+                "Unable to play stream."
+            );
+        }
+    }
+);
+
+audio.addEventListener(
+    "play",
+    () => {
+        playBtn.textContent =
+            "⏸ Pause";
+    }
+);
+
+audio.addEventListener(
+    "pause",
+    () => {
+        playBtn.textContent =
+            "▶ Play";
+    }
+);
+
+audio.addEventListener(
+    "error",
+    () => {
+
+        playBtn.textContent =
+            "▶ Play";
+
+        alert(
+            "Radio stream unavailable or blocked by CORS."
+        );
+    }
+);
+
+/* -------------------------
+   Visualizer
+-------------------------- */
+
+analyser.fftSize = 64;
+
+const bufferLength =
+    analyser.frequencyBinCount;
+
+const dataArray =
+    new Uint8Array(bufferLength);
+
+function draw() {
+
+    requestAnimationFrame(draw);
+
+    analyser.getByteFrequencyData(
+        dataArray
+    );
+
+    cctx.fillStyle = "#111";
+
+    cctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    const barWidth =
+        canvas.width / bufferLength;
+
+    let x = 0;
+
+    for (
+        let i = 0;
+        i < bufferLength;
+        i++
+    ) {
+
+        const barHeight =
+            dataArray[i] / 2;
+
+        const hue = i * 10;
+
+        cctx.fillStyle =
+            `hsl(${hue},80%,60%)`;
+
+        cctx.fillRect(
+            x,
+            canvas.height - barHeight,
+            barWidth - 2,
+            barHeight
+        );
+
+        x += barWidth;
+    }
+}
+
+draw();
+</script>
+
+</body>
+</html>
+

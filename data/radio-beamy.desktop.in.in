@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=BBC Radio
+Exec=radio-beamy
+Icon=radio-beamy
+Type=Application
+Categories=Audio;GNOME;

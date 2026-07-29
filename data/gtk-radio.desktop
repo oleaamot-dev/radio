@@ -1,0 +1,17 @@
+[Desktop Entry]
+Name=Radio
+Comment=Listen to Live Democracy Radio on GNOME
+TryExec=gtk-radio
+Exec=gtk-radio %U
+Icon=gtk-radio
+StartupNotify=true
+Terminal=false
+Type=Application
+Categories=GNOME;GTK;Music;Audio;AudioVideo;
+X-GNOME-Bugzilla-Bugzilla=GNOME
+X-GNOME-Bugzilla-Product=gtk-radio
+X-GNOME-Bugzilla-Component=general
+X-GNOME-Bugzilla-Version=578.0
+MimeType=application/gtk-radio;
+# Extra keywords that can be used to search for gtk-radio in GNOME Shell and Unity
+Keywords=Live;Radio;Program;Station;NPR;

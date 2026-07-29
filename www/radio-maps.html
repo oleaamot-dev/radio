@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GNOME Radio Audio Maps</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        #map {
+            width: 100%;
+            height: 500px;
+        }
+        #radio-player {
+            padding: 10px;
+            background-color: #f4f4f4;
+            border-top: 1px solid #ddd;
+        }
+        #station-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        #station-list li {
+            margin: 5px 0;
+        }
+        #station-list button {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <div id="radio-player">
+        <h2>GNOME Radio Audio Maps</h2>
+        <audio id="audio" controls></audio>
+        <ul id="station-list"></ul>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+    <!-- Radio Browser API script -->
+    <script>
+        // Initialize the map
+        var map = L.map('map').setView([20, 0], 2); // Center at [20, 0] with zoom level 2
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Initialize a marker cluster group
+        var markers = L.markerClusterGroup();
+        map.addLayer(markers);
+
+        // Function to play the station
+        function playStation(url) {
+            var audio = document.getElementById('audio');
+            audio.src = url;
+            audio.play();
+        }
+
+        // Fetch stations from Radio Browser API
+        fetch('https://de1.api.radio-browser.info/json/stations')
+            .then(response => response.json())
+            .then(stations => {
+                // Process stations in batches to avoid blocking the UI
+                let batchSize = 50;
+                let batchStart = 0;
+
+                function processBatch() {
+                    let batch = stations.slice(batchStart, batchStart + batchSize);
+                    batch.forEach(station => {
+                        if (station.geo_lat && station.geo_long) {
+                            // Add a marker for each station
+                            var marker = L.marker([station.geo_lat, station.geo_long]);
+                            marker.bindPopup(`<strong>${station.name}</strong><br><button onclick="playStation('${station.url_resolved}')">Play</button>`);
+                            markers.addLayer(marker);
+
+                            // Add to the station list
+                            var stationList = document.getElementById('station-list');
+                            var listItem = document.createElement('li');
+                            listItem.innerHTML = `${station.name} <button onclick="playStation('${station.url_resolved}')">Play</button>`;
+                            stationList.appendChild(listItem);
+                        }
+                    });
+
+                    batchStart += batchSize;
+                    if (batchStart < stations.length) {
+                        setTimeout(processBatch, 100); // Schedule next batch
+                    }
+                }
+                processBatch();
+            })
+            .catch(error => console.error('Error fetching stations:', error));
+    </script>
+</body>
+</html>

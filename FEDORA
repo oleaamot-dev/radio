@@ -1,0 +1,11 @@
+GNOME Radio (gnome-radio) is featured in Fedora.
+
+To install all GNOME Radio (gnome-radio) dependencies on Fedora, run
+
+sudo dnf update
+sudo dnf builddep gnome-radio
+
+To install the pre-packaged version of GNOME Radio (gnome-radio), run
+sudo dnf install gnome-radio
+
+See https://packages.fedoraproject.org/pkgs/gnome-radio/gnome-radio/

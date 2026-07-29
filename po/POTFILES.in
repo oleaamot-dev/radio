@@ -1,0 +1,18 @@
+# List of source files containing translatable strings.
+# Please keep this file sorted alphabetically.
+[encoding: UTF-8]
+data/gnome-radio.appdata.xml.in
+data/gtk-radio.appdata.xml.in
+data/org.gnome.Radio.appdata.xml.in
+data/radio-beamy.appdata.xml.in
+src/gnome-radio-gui.c
+src/gnome-radio-listener.c
+src/gnome-radio-location.c
+src/gnome-radio-station.c
+src/gnome-radio.c
+src/gtk-internet-radio-locator-gui.c
+src/gtk-internet-radio-locator-station.c
+src/gtk-internet-radio-locator.c
+src/gtk-radio-gui.c
+src/gtk-radio-station.c
+src/gtk-radio.c

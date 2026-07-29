@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radio</title>
+<style>
+:root{
+  --window-bg:#242424;
+  --headerbar-bg:#303030;
+  --sidebar-bg:#2a2a2a;
+  --card-bg:#303030;
+  --card-hover:#383838;
+  --border:rgba(255,255,255,0.08);
+  --border-strong:rgba(255,255,255,0.13);
+  --fg:#eeeeec;
+  --fg-dim:#9a9996;
+  --accent:#3584e4;
+  --accent-hover:#4a90e8;
+  --destructive:#e01b24;
+  --success:#33d17a;
+  --radius-window:12px;
+  --radius:9px;
+  --radius-sm:6px;
+  --font: -apple-system, "Segoe UI", "Cantarell", "Ubuntu", "Noto Sans", sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:var(--font);
+  background:#151515;
+  color:var(--fg);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+  overflow:hidden;
+}
+#app{
+  width:100%;
+  height:100%;
+  max-width:1400px;
+  background:var(--window-bg);
+  border-radius:var(--radius-window);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  border:1px solid var(--border-strong);
+}
+
+/* Headerbar */
+#headerbar{
+  height:47px;
+  min-height:47px;
+  background:var(--headerbar-bg);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  padding:0 8px;
+  gap:8px;
+  -webkit-app-region:drag;
+}
+.traffic{display:flex;gap:8px;padding:0 6px;}
+.traffic span{width:12px;height:12px;border-radius:50%;display:inline-block;}
+.traffic .c{background:#ff5f57;}
+.traffic .m{background:#febc2e;}
+.traffic .x{background:#28c840;}
+#headerbar .title{
+  font-weight:700;
+  font-size:14.5px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-right:6px;
+  white-space:nowrap;
+}
+#headerbar .title .icon{
+  width:20px;height:20px;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+#search-wrap{
+  flex:1;
+  display:flex;
+  justify-content:center;
+}
+#search{
+  width:100%;
+  max-width:420px;
+  background:#1f1f1f;
+  border:1px solid var(--border-strong);
+  border-radius:99px;
+  padding:6px 14px 6px 34px;
+  color:var(--fg);
+  font-size:13.5px;
+  outline:none;
+  position:relative;
+}
+#search:focus{border-color:var(--accent);}
+#search-wrap{position:relative;}
+#search-icon{
+  position:absolute;
+  left:calc(50% - 210px + 12px);
+  top:50%;
+  transform:translateY(-50%);
+  color:var(--fg-dim);
+  pointer-events:none;
+  font-size:13px;
+}
+.hbtn{
+  background:transparent;
+  border:none;
+  color:var(--fg);
+  width:32px;height:32px;
+  border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  font-size:15px;
+  -webkit-app-region:no-drag;
+}
+.hbtn:hover{background:rgba(255,255,255,0.08);}
+.hbtn.spinning svg{animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Body layout */
+#body{
+  flex:1;
+  display:flex;
+  min-height:0;
+}
+
+/* Sidebar */
+#sidebar{
+  width:220px;
+  min-width:220px;
+  background:var(--sidebar-bg);
+  border-right:1px solid var(--border);
+  padding:12px 8px;
+  overflow-y:auto;
+}
+.side-section{margin-bottom:18px;}
+.side-label{
+  font-size:11px;
+  font-weight:700;
+  color:var(--fg-dim);
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  padding:4px 10px 6px;
+}
+.side-item{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:7px 10px;
+  border-radius:var(--radius-sm);
+  cursor:pointer;
+  font-size:13.5px;
+  color:var(--fg);
+  user-select:none;
+}
+.side-item .ico{width:16px;text-align:center;opacity:.85;font-size:13px;}
+.side-item:hover{background:rgba(255,255,255,0.06);}
+.side-item.active{background:var(--accent);color:#fff;}
+.side-item.active .ico{opacity:1;}
+.side-count{
+  margin-left:auto;
+  font-size:11px;
+  color:var(--fg-dim);
+  background:rgba(255,255,255,0.06);
+  padding:1px 7px;
+  border-radius:99px;
+}
+.side-item.active .side-count{background:rgba(255,255,255,0.25);color:#fff;}
+
+/* Main */
+#main{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+#main-header{
+  padding:16px 22px 10px;
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+}
+#main-title{font-size:20px;font-weight:800;}
+#main-subtitle{font-size:12.5px;color:var(--fg-dim);margin-top:2px;}
+#grid-wrap{
+  flex:1;
+  overflow-y:auto;
+  padding:6px 22px 24px;
+}
+#grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  gap:12px;
+}
+.station-card{
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:12px;
+  display:flex;
+  gap:11px;
+  cursor:pointer;
+  align-items:center;
+  position:relative;
+  transition:background .1s ease;
+}
+.station-card:hover{background:var(--card-hover);}
+.station-card.playing{
+  border-color:var(--accent);
+  background:rgba(53,132,228,0.14);
+}
+.art{
+  width:46px;height:46px;
+  border-radius:var(--radius-sm);
+  background:linear-gradient(135deg,#4a4a4a,#2c2c2c);
+  display:flex;align-items:center;justify-content:center;
+  font-size:19px;
+  flex-shrink:0;
+  overflow:hidden;
+}
+.art img{width:100%;height:100%;object-fit:cover;}
+.s-info{min-width:0;flex:1;}
+.s-name{
+  font-size:13.5px;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.s-meta{
+  font-size:11.5px;color:var(--fg-dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  margin-top:2px;
+}
+.s-actions{display:flex;align-items:center;gap:2px;flex-shrink:0;}
+.icon-btn{
+  width:28px;height:28px;
+  border-radius:50%;
+  border:none;
+  background:transparent;
+  color:var(--fg-dim);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  font-size:13px;
+}
+.icon-btn:hover{background:rgba(255,255,255,0.1);color:var(--fg);}
+.icon-btn.fav.active{color:#f5c211;}
+.play-indicator{
+  color:var(--accent);
+  font-size:14px;
+  display:flex;
+  align-items:center;
+}
+.bars{display:flex;gap:2px;align-items:flex-end;height:14px;}
+.bars span{width:2.5px;background:var(--accent);border-radius:1px;animation:bar 0.9s infinite ease-in-out;}
+.bars span:nth-child(1){animation-delay:-0.6s;}
+.bars span:nth-child(2){animation-delay:-0.3s;}
+.bars span:nth-child(3){animation-delay:0s;}
+@keyframes bar{0%,100%{height:3px;}50%{height:14px;}}
+
+#empty,#loading{
+  padding:60px 20px;
+  text-align:center;
+  color:var(--fg-dim);
+  font-size:13.5px;
+}
+#loading .spinner{
+  width:26px;height:26px;
+  border-radius:50%;
+  border:3px solid rgba(255,255,255,0.15);
+  border-top-color:var(--accent);
+  margin:0 auto 14px;
+  animation:spin 0.8s linear infinite;
+}
+
+/* Player bar */
+#player{
+  height:74px;
+  min-height:74px;
+  background:var(--headerbar-bg);
+  border-top:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  padding:0 16px;
+  gap:14px;
+}
+#player .p-art{
+  width:48px;height:48px;
+  border-radius:var(--radius-sm);
+  background:linear-gradient(135deg,#4a4a4a,#2c2c2c);
+  display:flex;align-items:center;justify-content:center;
+  font-size:19px;
+  flex-shrink:0;
+  overflow:hidden;
+}
+#player .p-art img{width:100%;height:100%;object-fit:cover;}
+#player .p-info{width:210px;min-width:0;}
+#player .p-name{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#player .p-meta{font-size:11.5px;color:var(--fg-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+#player .p-controls{display:flex;align-items:center;gap:8px;}
+#play-btn{
+  width:42px;height:42px;
+  border-radius:50%;
+  border:none;
+  background:var(--accent);
+  color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  font-size:16px;
+}
+#play-btn:hover{background:var(--accent-hover);}
+#play-btn:disabled{opacity:.5;cursor:default;}
+#stop-btn{
+  width:34px;height:34px;
+  border-radius:50%;
+  border:none;
+  background:transparent;
+  color:var(--fg-dim);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  font-size:14px;
+}
+#stop-btn:hover{background:rgba(255,255,255,0.08);color:var(--fg);}
+#player .p-center{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  min-width:0;
+}
+.p-status{
+  font-size:11px;
+  color:var(--fg-dim);
+  height:14px;
+}
+#player .p-right{
+  display:flex;align-items:center;gap:10px;
+  width:220px;justify-content:flex-end;
+}
+.vol-icon{color:var(--fg-dim);font-size:14px;width:16px;text-align:center;}
+input[type=range]{
+  -webkit-appearance:none;
+  width:100px;
+  height:4px;
+  background:rgba(255,255,255,0.15);
+  border-radius:99px;
+  outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:13px;height:13px;
+  border-radius:50%;
+  background:#fff;
+  cursor:pointer;
+  margin-top:-4.5px;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:4px;border-radius:99px;
+  background:linear-gradient(to right, var(--accent) 0%, var(--accent) var(--fill,70%), rgba(255,255,255,0.15) var(--fill,70%));
+}
+#player .fav-toggle{
+  width:34px;height:34px;
+  border-radius:50%;
+  border:none;background:transparent;
+  color:var(--fg-dim);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:14px;
+}
+#player .fav-toggle.active{color:#f5c211;}
+#player .fav-toggle:hover{background:rgba(255,255,255,0.08);}
+
+#toast{
+  position:fixed;
+  bottom:90px;
+  left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:#1f1f1f;
+  border:1px solid var(--border-strong);
+  color:var(--fg);
+  padding:9px 16px;
+  border-radius:var(--radius);
+  font-size:12.5px;
+  opacity:0;
+  pointer-events:none;
+  transition:all .25s ease;
+  z-index:50;
+  box-shadow:0 8px 24px rgba(0,0,0,0.4);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:99px;border:2px solid transparent;background-clip:content-box;}
+::-webkit-scrollbar-track{background:transparent;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="headerbar">
+    <div class="title">
+      <span class="icon">📻</span>
+      <span>Radio</span>
+    </div>
+    <button class="hbtn" id="back-btn" title="Back" style="visibility:hidden;">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M10 3L4 8l6 5V3z"/></svg>
+    </button>
+    <div id="search-wrap">
+      <span id="search-icon">⚲</span>
+      <input id="search" type="text" placeholder="Search stations…" autocomplete="off">
+    </div>
+    <button class="hbtn" id="refresh-btn" title="Refresh">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.65 2.35A7.958 7.958 0 008 0C3.58 0 0 3.58 0 8s3.58 8 8 8a8 8 0 007.94-7h-2.02A6 6 0 112 8a5.96 5.96 0 011.76-4.24L6 6H0V0l2.35 2.35z"/></svg>
+    </button>
+  </div>
+
+  <div id="body">
+    <div id="sidebar">
+      <div class="side-section">
+        <div class="side-label">Library</div>
+        <div class="side-item active" data-view="discover"><span class="ico">✨</span>Discover</div>
+        <div class="side-item" data-view="favorites"><span class="ico">★</span>Favorites<span class="side-count" id="fav-count">0</span></div>
+        <div class="side-item" data-view="recent"><span class="ico">🕑</span>Recently Played</div>
+      </div>
+      <div class="side-section">
+        <div class="side-label">Genres</div>
+        <div id="genre-list"></div>
+      </div>
+      <div class="side-section">
+        <div class="side-label">Countries</div>
+        <div id="country-list"></div>
+      </div>
+    </div>
+
+    <div id="main">
+      <div id="main-header">
+        <div>
+          <div id="main-title">Discover</div>
+          <div id="main-subtitle">Popular stations from around the world</div>
+        </div>
+      </div>
+      <div id="grid-wrap">
+        <div id="loading" style="display:none;">
+          <div class="spinner"></div>
+          Loading stations…
+        </div>
+        <div id="empty" style="display:none;">No stations found. Try another search.</div>
+        <div id="grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="player">
+    <div class="p-art" id="p-art">📻</div>
+    <div class="p-info">
+      <div class="p-name" id="p-name">Nothing playing</div>
+      <div class="p-meta" id="p-meta">Choose a station to start listening</div>
+    </div>
+    <div class="p-controls">
+      <button id="play-btn" disabled title="Play">
+        <svg id="play-icon" width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2l10 6-10 6V2z"/></svg>
+      </button>
+      <button id="stop-btn" title="Stop">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="10" height="10" rx="1"/></svg>
+      </button>
+    </div>
+    <div class="p-center">
+      <div class="p-status" id="p-status"></div>
+    </div>
+    <div class="p-right">
+      <button class="fav-toggle" id="p-fav" title="Add to favorites">★</button>
+      <span class="vol-icon" id="vol-icon">🔊</span>
+      <input type="range" id="volume" min="0" max="100" value="80">
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<audio id="audio" preload="none"></audio>
+
+<script>
+const API_BASES = [
+  "https://de1.api.radio-browser.info",
+  "https://de2.api.radio-browser.info",
+  "https://fi1.api.radio-browser.info",
+  "https://nl1.api.radio-browser.info"
+];
+let apiBase = API_BASES[0];
+
+const el = id => document.getElementById(id);
+const grid = el('grid');
+const loadingEl = el('loading');
+const emptyEl = el('empty');
+const audio = el('audio');
+const toast = el('toast');
+
+let stations = [];
+let favorites = [];
+let recent = [];
+let currentStation = null;
+let currentView = 'discover';
+let searchTimeout = null;
+
+/* ---------- storage ---------- */
+async function loadFavorites(){
+  try{
+    const res = await window.storage.get('favorites');
+    favorites = res ? JSON.parse(res.value) : [];
+  }catch(e){ favorites = []; }
+  updateFavCount();
+}
+async function saveFavorites(){
+  try{ await window.storage.set('favorites', JSON.stringify(favorites)); }catch(e){}
+}
+async function loadRecent(){
+  try{
+    const res = await window.storage.get('recent');
+    recent = res ? JSON.parse(res.value) : [];
+  }catch(e){ recent = []; }
+}
+async function saveRecent(){
+  try{ await window.storage.set('recent', JSON.stringify(recent)); }catch(e){}
+}
+function updateFavCount(){ el('fav-count').textContent = favorites.length; }
+
+function isFav(uuid){ return favorites.some(f => f.stationuuid === uuid); }
+async function toggleFav(station){
+  if(isFav(station.stationuuid)){
+    favorites = favorites.filter(f => f.stationuuid !== station.stationuuid);
+    showToast('Removed from Favorites');
+  } else {
+    favorites.unshift(station);
+    showToast('Added to Favorites');
+  }
+  updateFavCount();
+  await saveFavorites();
+  if(currentView === 'favorites') renderStations(favorites);
+  if(currentStation && currentStation.stationuuid === station.stationuuid) updatePlayerFav();
+  updateCardFavStates();
+}
+
+/* ---------- toast ---------- */
+let toastTimer = null;
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> toast.classList.remove('show'), 2200);
+}
+
+/* ---------- API ---------- */
+async function apiFetch(path){
+  let lastErr;
+  for(const base of API_BASES){
+    try{
+      const res = await fetch(base + path, { headers: { 'Content-Type':'application/json' } });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      apiBase = base;
+      return await res.json();
+    }catch(e){ lastErr = e; }
+  }
+  throw lastErr;
+}
+
+async function fetchTop(){
+  return apiFetch('/json/stations/topclick/40?hidebroken=true');
+}
+async function fetchSearch(name){
+  return apiFetch('/json/stations/search?name=' + encodeURIComponent(name) + '&limit=40&hidebroken=true');
+}
+async function fetchByTag(tag){
+  return apiFetch('/json/stations/bytag/' + encodeURIComponent(tag) + '?limit=40&hidebroken=true');
+}
+async function fetchByCountry(country){
+  return apiFetch('/json/stations/bycountry/' + encodeURIComponent(country) + '?limit=40&hidebroken=true');
+}
+async function fetchTags(){
+  return apiFetch('/json/tags?order=stationcount&reverse=true&limit=16');
+}
+async function fetchCountries(){
+  return apiFetch('/json/countries?order=stationcount&reverse=true&limit=16');
+}
+
+/* ---------- sidebar lists ---------- */
+async function populateSidebar(){
+  try{
+    const tags = await fetchTags();
+    const genreList = el('genre-list');
+    genreList.innerHTML = '';
+    tags.forEach(t => {
+      if(!t.name) return;
+      const div = document.createElement('div');
+      div.className = 'side-item';
+      div.dataset.tag = t.name;
+      div.innerHTML = `<span class="ico">♪</span>${capitalize(t.name)}<span class="side-count">${t.stationcount}</span>`;
+      div.onclick = () => selectTag(t.name, div);
+      genreList.appendChild(div);
+    });
+  }catch(e){}
+
+  try{
+    const countries = await fetchCountries();
+    const countryList = el('country-list');
+    countryList.innerHTML = '';
+    countries.forEach(c => {
+      if(!c.name) return;
+      const div = document.createElement('div');
+      div.className = 'side-item';
+      div.dataset.country = c.name;
+      div.innerHTML = `<span class="ico">⚑</span>${c.name}<span class="side-count">${c.stationcount}</span>`;
+      div.onclick = () => selectCountry(c.name, div);
+      countryList.appendChild(div);
+    });
+  }catch(e){}
+}
+
+function capitalize(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function clearActiveSidebar(){
+  document.querySelectorAll('.side-item').forEach(i => i.classList.remove('active'));
+}
+
+/* ---------- views ---------- */
+async function selectView(view, node){
+  currentView = view;
+  clearActiveSidebar();
+  if(node) node.classList.add('active');
+  el('search').value = '';
+
+  if(view === 'discover'){
+    el('main-title').textContent = 'Discover';
+    el('main-subtitle').textContent = 'Popular stations from around the world';
+    setLoading(true);
+    try{
+      stations = await fetchTop();
+      renderStations(stations);
+    }catch(e){ showError(); }
+    setLoading(false);
+  } else if(view === 'favorites'){
+    el('main-title').textContent = 'Favorites';
+    el('main-subtitle').textContent = favorites.length + ' saved station' + (favorites.length===1?'':'s');
+    renderStations(favorites);
+  } else if(view === 'recent'){
+    el('main-title').textContent = 'Recently Played';
+    el('main-subtitle').textContent = recent.length + ' station' + (recent.length===1?'':'s');
+    renderStations(recent);
+  }
+}
+
+async function selectTag(tag, node){
+  currentView = 'tag';
+  clearActiveSidebar();
+  node.classList.add('active');
+  el('search').value = '';
+  el('main-title').textContent = capitalize(tag);
+  el('main-subtitle').textContent = 'Stations tagged “' + tag + '”';
+  setLoading(true);
+  try{
+    stations = await fetchByTag(tag);
+    renderStations(stations);
+  }catch(e){ showError(); }
+  setLoading(false);
+}
+
+async function selectCountry(country, node){
+  currentView = 'country';
+  clearActiveSidebar();
+  node.classList.add('active');
+  el('search').value = '';
+  el('main-title').textContent = country;
+  el('main-subtitle').textContent = 'Stations broadcasting from ' + country;
+  setLoading(true);
+  try{
+    stations = await fetchByCountry(country);
+    renderStations(stations);
+  }catch(e){ showError(); }
+  setLoading(false);
+}
+
+function setLoading(v){
+  loadingEl.style.display = v ? 'block' : 'none';
+  emptyEl.style.display = 'none';
+  if(v) grid.innerHTML = '';
+}
+function showError(){
+  emptyEl.textContent = 'Could not reach the radio directory. Check your connection and try refreshing.';
+  emptyEl.style.display = 'block';
+  grid.innerHTML = '';
+}
+
+/* ---------- rendering ---------- */
+function renderStations(list){
+  grid.innerHTML = '';
+  emptyEl.style.display = 'none';
+  loadingEl.style.display = 'none';
+  if(!list || list.length === 0){
+    emptyEl.textContent = 'No stations found. Try another search.';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  list.forEach(st => frag.appendChild(buildCard(st)));
+  grid.appendChild(frag);
+}
+
+function buildCard(st){
+  const card = document.createElement('div');
+  card.className = 'station-card';
+  card.dataset.uuid = st.stationuuid;
+  if(currentStation && currentStation.stationuuid === st.stationuuid) card.classList.add('playing');
+
+  const art = document.createElement('div');
+  art.className = 'art';
+  if(st.favicon){
+    const img = document.createElement('img');
+    img.src = st.favicon;
+    img.onerror = () => { art.innerHTML = '📻'; };
+    art.appendChild(img);
+  } else {
+    art.textContent = '📻';
+  }
+
+  const info = document.createElement('div');
+  info.className = 's-info';
+  const name = document.createElement('div');
+  name.className = 's-name';
+  name.textContent = st.name || 'Unknown station';
+  const meta = document.createElement('div');
+  meta.className = 's-meta';
+  const bits = [];
+  if(st.country) bits.push(st.country);
+  if(st.bitrate) bits.push(st.bitrate + 'kbps');
+  const tag = (st.tags || '').split(',')[0];
+  if(tag) bits.push(capitalize(tag));
+  meta.textContent = bits.join(' · ') || 'Internet radio';
+  info.appendChild(name);
+  info.appendChild(meta);
+
+  const actions = document.createElement('div');
+  actions.className = 's-actions';
+
+  if(currentStation && currentStation.stationuuid === st.stationuuid && !audio.paused){
+    const ind = document.createElement('div');
+    ind.className = 'play-indicator';
+    ind.innerHTML = '<div class="bars"><span></span><span></span><span></span></div>';
+    actions.appendChild(ind);
+  } else {
+    const favBtn = document.createElement('button');
+    favBtn.className = 'icon-btn fav' + (isFav(st.stationuuid) ? ' active' : '');
+    favBtn.innerHTML = isFav(st.stationuuid) ? '★' : '☆';
+    favBtn.title = 'Toggle favorite';
+    favBtn.onclick = (e) => { e.stopPropagation(); toggleFav(st); favBtn.classList.toggle('active'); favBtn.innerHTML = isFav(st.stationuuid) ? '★' : '☆'; };
+    actions.appendChild(favBtn);
+  }
+
+  card.appendChild(art);
+  card.appendChild(info);
+  card.appendChild(actions);
+  card.onclick = () => playStation(st);
+  return card;
+}
+
+function updateCardFavStates(){
+  document.querySelectorAll('.station-card').forEach(card => {
+    const btn = card.querySelector('.icon-btn.fav');
+    if(!btn) return;
+    const uuid = card.dataset.uuid;
+    btn.classList.toggle('active', isFav(uuid));
+    btn.innerHTML = isFav(uuid) ? '★' : '☆';
+  });
+}
+
+function markPlayingCard(){
+  document.querySelectorAll('.station-card').forEach(c => {
+    c.classList.toggle('playing', currentStation && c.dataset.uuid === currentStation.stationuuid);
+  });
+  // re-render current view's action area for playing/other cards
+  const cur = grid.querySelector('.station-card.playing .s-actions');
+  if(cur && currentStation){
+    cur.innerHTML = '<div class="play-indicator"><div class="bars"><span></span><span></span><span></span></div></div>';
+  }
+}
+
+/* ---------- player ---------- */
+async function playStation(st){
+  currentStation = st;
+  const url = st.url_resolved || st.url;
+  el('play-btn').disabled = false;
+  el('p-name').textContent = st.name || 'Unknown station';
+  const bits = [];
+  if(st.country) bits.push(st.country);
+  const tag = (st.tags || '').split(',')[0];
+  if(tag) bits.push(capitalize(tag));
+  el('p-meta').textContent = bits.join(' · ') || 'Internet radio';
+  el('p-status').textContent = 'Connecting…';
+  updatePlayerFav();
+
+  const artEl = el('p-art');
+  artEl.innerHTML = '';
+  if(st.favicon){
+    const img = document.createElement('img');
+    img.src = st.favicon;
+    img.onerror = () => { artEl.textContent = '📻'; };
+    artEl.appendChild(img);
+  } else {
+    artEl.textContent = '📻';
+  }
+
+  audio.src = url;
+  audio.volume = el('volume').value / 100;
+  try{
+    await audio.play();
+  }catch(e){
+    el('p-status').textContent = 'Could not play this stream';
+    showToast('Unable to play “' + (st.name||'station') + '”');
+  }
+
+  // recently played
+  recent = recent.filter(r => r.stationuuid !== st.stationuuid);
+  recent.unshift(st);
+  recent = recent.slice(0, 30);
+  saveRecent();
+  if(currentView === 'recent') renderStations(recent);
+
+  markPlayingCard();
+  updatePlayIcon();
+}
+
+function updatePlayerFav(){
+  const btn = el('p-fav');
+  if(!currentStation){ btn.classList.remove('active'); return; }
+  btn.classList.toggle('active', isFav(currentStation.stationuuid));
+}
+
+function updatePlayIcon(){
+  const icon = el('play-icon');
+  if(audio.paused){
+    icon.innerHTML = '<path d="M4 2l10 6-10 6V2z"/>';
+  } else {
+    icon.innerHTML = '<rect x="3" y="2" width="3.4" height="12" rx="1"/><rect x="9.6" y="2" width="3.4" height="12" rx="1"/>';
+  }
+}
+
+el('play-btn').onclick = () => {
+  if(!currentStation) return;
+  if(audio.paused){
+    audio.play().catch(()=>{});
+  } else {
+    audio.pause();
+  }
+};
+el('stop-btn').onclick = () => {
+  audio.pause();
+  audio.removeAttribute('src');
+  audio.load();
+  el('p-status').textContent = '';
+  currentStation = null;
+  el('play-btn').disabled = true;
+  el('p-name').textContent = 'Nothing playing';
+  el('p-meta').textContent = 'Choose a station to start listening';
+  el('p-art').textContent = '📻';
+  el('p-fav').classList.remove('active');
+  markPlayingCard();
+};
+el('p-fav').onclick = () => { if(currentStation) toggleFav(currentStation); };
+
+audio.addEventListener('playing', () => {
+  el('p-status').textContent = 'Now playing';
+  updatePlayIcon();
+  markPlayingCard();
+});
+audio.addEventListener('pause', () => {
+  el('p-status').textContent = currentStation ? 'Paused' : '';
+  updatePlayIcon();
+  markPlayingCard();
+});
+audio.addEventListener('waiting', () => { el('p-status').textContent = 'Buffering…'; });
+audio.addEventListener('error', () => {
+  el('p-status').textContent = 'Stream error';
+});
+
+/* volume */
+const volumeInput = el('volume');
+function setVolFill(){
+  volumeInput.style.setProperty('--fill', volumeInput.value + '%');
+}
+volumeInput.addEventListener('input', () => {
+  audio.volume = volumeInput.value / 100;
+  el('vol-icon').textContent = volumeInput.value == 0 ? '🔇' : (volumeInput.value < 50 ? '🔉' : '🔊');
+  setVolFill();
+});
+setVolFill();
+
+/* ---------- search ---------- */
+el('search').addEventListener('input', (e) => {
+  const q = e.target.value.trim();
+  clearTimeout(searchTimeout);
+  if(!q){
+    selectView('discover');
+    return;
+  }
+  searchTimeout = setTimeout(async () => {
+    clearActiveSidebar();
+    el('main-title').textContent = 'Search';
+    el('main-subtitle').textContent = '“' + q + '”';
+    setLoading(true);
+    try{
+      stations = await fetchSearch(q);
+      renderStations(stations);
+    }catch(err){ showError(); }
+    setLoading(false);
+  }, 400);
+});
+
+/* ---------- sidebar nav ---------- */
+document.querySelectorAll('#sidebar > .side-section:first-child .side-item').forEach(item => {
+  item.onclick = () => selectView(item.dataset.view, item);
+});
+
+el('refresh-btn').onclick = () => {
+  el('refresh-btn').classList.add('spinning');
+  const active = document.querySelector('.side-item.active');
+  const view = active ? active.dataset.view : 'discover';
+  selectView(view || 'discover', active).finally(() => {
+    el('refresh-btn').classList.remove('spinning');
+  });
+};
+
+/* ---------- init ---------- */
+(async function init(){
+  await loadFavorites();
+  await loadRecent();
+  await populateSidebar();
+  setLoading(true);
+  try{
+    stations = await fetchTop();
+    renderStations(stations);
+  }catch(e){ showError(); }
+  setLoading(false);
+})();
+</script>
+</body>
+</html>

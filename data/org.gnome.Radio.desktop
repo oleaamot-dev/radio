@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=BBC Radio
+Exec=org.gnome.Radio
+Icon=org.gnome.Radio
+Type=Application
+Categories=Audio;GNOME;
