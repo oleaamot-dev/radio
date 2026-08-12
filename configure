@@ -18990,7 +18990,7 @@ printf "%s\n" "#define GETTEXT_PACKAGE \"$GETTEXT_PACKAGE\"" >>confdefs.h
 
 # YELP_HELP_INIT
 
-ac_config_files="$ac_config_files Makefile beamy/Makefile data/Makefile data/icons/Makefile data/gnome-radio.desktop data/gtk-radio.desktop data/org.gnome.Radio.desktop data/radio-beamy.desktop doc/Makefile gtk/Makefile help/Makefile help/C/version.xml icy/Makefile man/Makefile po/Makefile.in src/Makefile www/Makefile gnome-radio.spec"
+ac_config_files="$ac_config_files Makefile beamy/Makefile data/Makefile data/icons/Makefile data/gnome-radio.desktop data/gtk-radio.desktop data/org.gnome.Radio.desktop data/radio-beamy.desktop doc/Makefile gtk/Makefile help/Makefile help/C/version.xml icy/Makefile man/Makefile oop/Makefile po/Makefile.in src/Makefile www/Makefile gnome-radio.spec"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -20080,6 +20080,7 @@ do
     "help/C/version.xml") CONFIG_FILES="$CONFIG_FILES help/C/version.xml" ;;
     "icy/Makefile") CONFIG_FILES="$CONFIG_FILES icy/Makefile" ;;
     "man/Makefile") CONFIG_FILES="$CONFIG_FILES man/Makefile" ;;
+    "oop/Makefile") CONFIG_FILES="$CONFIG_FILES oop/Makefile" ;;
     "po/Makefile.in") CONFIG_FILES="$CONFIG_FILES po/Makefile.in" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "www/Makefile") CONFIG_FILES="$CONFIG_FILES www/Makefile" ;;

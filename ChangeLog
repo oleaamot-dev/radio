@@ -1,3 +1,43 @@
+commit ad0e84fedf3e6c5125cee7be7bb65152ea4a349b
+Author: Ole Aamot <ole.aamot@aamotinnovation.com>
+Date:   Wed Aug 12 09:40:14 2026 +0200
+
+    GNOME Radio Object-Oriented Program version 1.0.0 (gnome_radio_oop.py)
+
+ oop/gnome_radio_oop.py | 447 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 447 insertions(+)
+
+commit 0dddc29c2d4c6d1297511b0f28bf7a6c50838f46
+Author: Ole Aamot <ole.aamot@aamotinnovation.com>
+Date:   Wed Aug 12 02:30:46 2026 +0200
+
+    GNOME Radio version 83.0 (gnome-radio)
+
+ ChangeLog                           | 939 +++++++-----------------------------
+ Makefile                            |  28 +-
+ Makefile.in                         |   2 +-
+ NEWS                                |  12 +
+ README                              |   4 +-
+ configure                           |  20 +-
+ configure.ac                        |   2 +-
+ data/gnome-radio.appdata.xml.in     |   4 +-
+ data/gnome-radio.desktop            |   2 +-
+ data/gnome-radio.desktop.in         |   2 +-
+ data/gnome-radio.desktop.in.in      |   2 +-
+ data/gtk-radio.desktop.in.in        |   2 +-
+ data/org.gnome.Radio.appdata.xml.in |   4 +-
+ data/radio-beamy.appdata.xml.in     |   4 +-
+ gnome-radio.spec                    |   8 +-
+ gnome-radio.spec.in                 |   6 +
+ src/gnome-radio-markers.c           |  11 +
+ src/gnome-radio.c                   |   4 +-
+ src/gnome-radio.xml                 |   8 +-
+ src/gtk-radio-markers.c             |  11 +
+ src/gtk-radio.c                     |   4 +-
+ src/gtk-radio.xml                   |   8 +-
+ src/internet-radio-locator.xml      |   8 +-
+ 23 files changed, 288 insertions(+), 807 deletions(-)
+
 commit f70b151bb55c8e968dfd8993c13e05515aa3bd54
 Author: Ole Aamot <ole.aamot@aamotinnovation.com>
 Date:   Wed Jul 29 15:38:01 2026 +0200

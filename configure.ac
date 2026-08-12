@@ -159,6 +159,7 @@ help/Makefile
 help/C/version.xml
 icy/Makefile
 man/Makefile
+oop/Makefile
 po/Makefile.in
 src/Makefile
 www/Makefile

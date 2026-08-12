@@ -59,6 +59,7 @@ desktop-file-validate %{buildroot}/%{_datadir}/applications/%{name}.desktop
 %license COPYING
 %{_bindir}/%{name}
 %{_bindir}/gnome-internet-radio-locator
+%{_bindir}/gnome-radio-oop
 %{_bindir}/gtk-radio
 %{_bindir}/gtk-internet-radio-locator
 %{_bindir}/org.gnome.Radio
