@@ -638,7 +638,7 @@ gnome_radio_window_cb (GtkApplication *app,
 	gtk_container_add (GTK_CONTAINER(window), GTK_WIDGET(grid));
 	g_signal_connect (window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 #endif
-	gtk_window_set_title (GTK_WINDOW(window), _("Radio 81.0 - https://www.gnomeradio.org/ - https://wiki.gnome.org/Apps/Radio"));
+	gtk_window_set_title (GTK_WINDOW(window), _("Radio 83.0 - https://www.gnomeradio.org/ - https://wiki.gnome.org/Apps/Radio"));
 	gtk_window_set_default_size (GTK_WINDOW(window), 800, 600);
 	gtk_window_maximize (GTK_WINDOW (window));
 	gnome_radio_app = create_gnome_radio_app();
@@ -828,7 +828,7 @@ static void activate(GtkApplication *app, gpointer user_data)
 	/* give the window a 10px wide border */
 	gtk_container_set_border_width (GTK_CONTAINER (window), 10);
 	/* give it the title */
-	gtk_window_set_title (GTK_WINDOW (window), _("Radio 81.0 - https://www.gnomeradio.org/ - https://wiki.gnome.org/Apps/Radio"));
+	gtk_window_set_title (GTK_WINDOW (window), _("Radio 83.0 - https://www.gnomeradio.org/ - https://wiki.gnome.org/Apps/Radio"));
 	/* Connect the destroy event of the window with our on_destroy function
 	 * When the window is about to be destroyed we get a notificaiton and
 	 * stop the main GTK loop

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="https://www.gnomeradio.org/~ole/radio/internet-radio-locator.xsl" ?>
 <!DOCTYPE internet_radio_locator SYSTEM "internet-radio-locator-48.0.dtd">
-<internet_radio_locator version="81.0">
+<internet_radio_locator version="83.0">
   <station band="Online" id="p4radiohelenorge" name="P4 Radio Hele Norge" rank="1.0" type="no">
     <location>Norge</location>
     <description lang="nb">P4 Radio Hele Norge</description>
@@ -797,6 +797,12 @@ In 1998, CBS merged with the international department of the Broadcasting Corpor
     <stream mime="audio/aac" uri="http://cdn0-47115-liveicecast0.dna.contentdelivery.net:80/p1_dk9_aac_h" codec="MPEG-4 AAC" samplerate="48000 Hz" bitrate="125 kbps"/>
     <uri>https://www.nrk.no/rogaland/</uri>
   </station>
+  <station band="Online" id="p1_rogaland" lang="no" name="NRK P1 Rogaland" rank="1.0" type="gov">
+    <location>Stavanger, Norway</location>
+    <description lang="no">NRK P1 Rogaland</description>
+    <stream mime="audio/aac" uri="http://cdn0-47115-liveicecast0.dna.contentdelivery.net:80/p1_dk9_aac_h" codec="MPEG-4 AAC" samplerate="48000 Hz" bitrate="125 kbps"/>
+    <uri>https://www.nrk.no/rogaland/</uri>
+  </station>  
   <station band="Online" id="p1_buskerud" lang="no" name="NRK P1 Buskerud" rank="1.0" type="gov">
     <location>Buskerud, Norway</location>
     <description lang="no">NRK P1 Buskerud</description>
