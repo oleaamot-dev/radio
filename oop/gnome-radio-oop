@@ -8,11 +8,24 @@ Aamot Innovation sine GNOME-verktøy (GTK4/Python-stilen brukt
 i GNOME Noark5 Client og GNOME Photo Companion).
 
 Arkitektur:
-    Station          – dataklasse som representerer én radiostasjon
-    StationLibrary    – innlasting, lagring og søk i stasjonslisten
-    RadioPlayer       – innkapsler GStreamer-avspilling (playbin)
-    RadioWindow       – GTK4-vinduet (View), lytter på RadioPlayer-signaler
-    RadioApplication  – Gtk.Application, kobler alt sammen
+    Station           – dataklasse som representerer én radiostasjon
+    StationLibrary     – innlasting, lagring, søk og CRUD i stasjonslisten
+    RadioPlayer        – innkapsler GStreamer-avspilling (playbin)
+    StationRow         – én rad i listen, med favoritt-/rediger-/slett-meny
+    StationEditDialog  – modal dialog for å legge til/redigere en stasjon
+    RadioWindow        – GTK4-vinduet (View), lytter på RadioPlayer-signaler
+    RadioApplication   – Gtk.Application, kobler alt sammen
+
+Funksjoner:
+    - Legg til, rediger og slett stasjoner direkte i grensesnittet
+    - Filtrer på favoritter, i tillegg til fritekstsøk
+    - Live sporinfo (låt/programtittel) fra strømmens metadata-tags
+    - Mute/unmute som husker forrige volumnivå
+    - Toast-varsler for feil, lagring og sletting (Adw.ToastOverlay)
+    - Import/eksport av stasjonsliste som JSON
+    - MPRIS2-integrasjon: medietaster og GNOME Shell sitt now-playing-widget
+    - Kartvisning (OpenStreetMap via libshumate) med landmarkører for
+      hver stasjon som legges til i programmet
 
 Kjør med:
     python3 gnome_radio_oop.py
@@ -20,14 +33,20 @@ Kjør med:
 Avhengigheter (Debian/Ubuntu):
     sudo apt install python3-gi gir1.2-gtk-4.0 gir1.2-gstreamer-1.0 \
                       gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
-                      gstreamer1.0-plugins-ugly gstreamer1.0-libav
+                      gstreamer1.0-plugins-ugly gstreamer1.0-libav \
+                      gir1.2-shumate-1.0 libshumate-dev
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import math
+import random
+import zlib
+from collections import deque
 from dataclasses import dataclass, field, asdict
+from datetime import datetime, timezone
 from enum import Enum, auto
 from pathlib import Path
 from typing import Callable, Optional
@@ -37,8 +56,9 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 gi.require_version("Gst", "1.0")
+gi.require_version("Shumate", "1.0")
 
-from gi.repository import Gtk, Adw, Gst, GLib, Gio, GObject  # noqa: E402
+from gi.repository import Gtk, Adw, Gst, GLib, Gio, GObject, Gdk, Shumate  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("gnome-radio")
@@ -74,6 +94,140 @@ class Station:
             country=data.get("country", "Norge"),
             favorite=data.get("favorite", False),
         )
+
+
+# ---------------------------------------------------------------------------
+# Landkoordinater for kartvisning
+# ---------------------------------------------------------------------------
+# Stasjonens `country`-felt er fritekst på norsk (f.eks. «Norge», «Sverige»),
+# så oppslaget er nøkkelbasert på norske stedsnavn – ikke ISO-landkoder.
+# Verdiene er hovedstad/sentroide, brukt som posisjon for landmarkøren.
+# Utvid gjerne tabellen selv, eller koble på Nominatim (OSM sin geokodings-
+# tjeneste) dersom du vil ha presise per-stasjon-koordinater i stedet.
+
+COUNTRY_COORDINATES: dict[str, tuple[float, float]] = {
+    "norge": (59.9139, 10.7522),
+    "sverige": (59.3293, 18.0686),
+    "danmark": (55.6761, 12.5683),
+    "finland": (60.1699, 24.9384),
+    "island": (64.1466, -21.9426),
+    "tyskland": (52.5200, 13.4050),
+    "frankrike": (48.8566, 2.3522),
+    "storbritannia": (51.5074, -0.1278),
+    "nederland": (52.3676, 4.9041),
+    "spania": (40.4168, -3.7038),
+    "italia": (41.9028, 12.4964),
+    "polen": (52.2297, 21.0122),
+    "usa": (38.9072, -77.0369),
+    "japan": (35.6762, 139.6503),
+    "brasil": (-15.7939, -47.8828),
+    "australia": (-35.2809, 149.1300),
+    "canada": (45.4215, -75.6972),
+}
+
+DEFAULT_COORDINATES = (59.9139, 10.7522)  # Oslo – fallback for ukjente land
+
+
+def coordinates_for_country(country: str) -> tuple[float, float]:
+    """Slår opp en posisjon for landmarkøren, basert på stasjonens land."""
+    return COUNTRY_COORDINATES.get(country.strip().lower(), DEFAULT_COORDINATES)
+
+
+_KM_PER_DEGREE_LATITUDE = 111.32
+MARKER_JITTER_RADIUS_KM = 10.0
+
+
+def jittered_coordinates_for_station(station: "Station") -> tuple[float, float]:
+    """Regner ut en markørposisjon for stasjonen, spredt innenfor en
+    `MARKER_JITTER_RADIUS_KM`-radius rundt landets senterpunkt.
+
+    Uten dette havner alle stasjoner fra samme land nøyaktig på samme
+    koordinat (hovedstaden), og markørene overlapper hverandre på kartet.
+    Forskyvningen er deterministisk basert på strøm-URLen, slik at samme
+    stasjon alltid havner på samme sted – selv om kartet tegnes på nytt.
+    """
+    base_lat, base_lon = coordinates_for_country(station.country)
+
+    seed = zlib.crc32(station.url.encode("utf-8"))
+    rng = random.Random(seed)
+    angle = rng.uniform(0.0, 2 * math.pi)
+    # sqrt(uniform) gir jevnt fordelte punkter over hele sirkelens *areal*,
+    # i stedet for å klumpe seg opp mot sentrum.
+    radius_km = MARKER_JITTER_RADIUS_KM * math.sqrt(rng.uniform(0.0, 1.0))
+
+    delta_lat = (radius_km / _KM_PER_DEGREE_LATITUDE) * math.sin(angle)
+    km_per_degree_longitude = _KM_PER_DEGREE_LATITUDE * math.cos(math.radians(base_lat)) or 1.0
+    delta_lon = (radius_km / km_per_degree_longitude) * math.cos(angle)
+
+    return base_lat + delta_lat, base_lon + delta_lon
+
+
+# ---------------------------------------------------------------------------
+# Tango-paletten – brukt til å fargekode kartmarkørene
+# ---------------------------------------------------------------------------
+# Standard GNOME/Tango-farger (middels tone). Hver stasjon får en farge
+# deterministisk basert på strøm-URLen, slik at samme stasjon alltid
+# får samme farge, og at flere stasjoner enkelt kan skilles fra
+# hverandre på kartet selv når de deler land/koordinat.
+
+TANGO_PALETTE: list[tuple[str, str]] = [
+    ("butter", "#edd400"),
+    ("orange", "#f57900"),
+    ("chocolate", "#c17d11"),
+    ("chameleon", "#73d216"),
+    ("sky-blue", "#3465a4"),
+    ("plum", "#75507b"),
+    ("scarlet-red", "#cc0000"),
+    ("aluminium", "#888a85"),
+]
+
+
+def tango_color_for(key: str) -> tuple[str, str]:
+    """Returnerer (css-klassenavn, hex-farge) deterministisk for `key`,
+    slik at samme stasjon alltid får samme farge på tvers av kartredraw."""
+    index = zlib.crc32(key.encode("utf-8")) % len(TANGO_PALETTE)
+    return TANGO_PALETTE[index]
+
+
+_MARKER_CSS_LOADED = False
+
+
+def _ensure_marker_css_loaded() -> None:
+    """Laster CSS for kartmarkørene én gang per prosess."""
+    global _MARKER_CSS_LOADED
+    if _MARKER_CSS_LOADED:
+        return
+
+    rules = ["""
+        .station-marker-pin {
+            border-radius: 10px;
+            padding: 3px 8px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+        }
+        .station-marker-pin .marker-station-name {
+            font-weight: bold;
+            font-size: 11px;
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+        }
+        .station-marker-pin .marker-meta-info {
+            font-size: 9px;
+            color: #ffffff;
+            opacity: 0.9;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+        }
+    """]
+    for css_class, hex_color in TANGO_PALETTE:
+        rules.append(f".tango-{css_class} {{ background-color: {hex_color}; }}")
+
+    provider = Gtk.CssProvider()
+    provider.load_from_data("\n".join(rules).encode("utf-8"))
+    Gtk.StyleContext.add_provider_for_display(
+        Gdk.Display.get_default(),
+        provider,
+        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+    )
+    _MARKER_CSS_LOADED = True
 
 
 class PlaybackState(Enum):
@@ -137,6 +291,18 @@ class StationLibrary:
         self._stations = [s for s in self._stations if s.url != station.url]
         self.save()
 
+    def update(self, original: Station, updated: Station) -> None:
+        """Erstatter `original` med `updated` på samme plass i listen,
+        og bevarer favoritt-status hvis den nye versjonen ikke selv setter den."""
+        for i, s in enumerate(self._stations):
+            if s.url == original.url:
+                updated.favorite = original.favorite
+                self._stations[i] = updated
+                self.save()
+                return
+        # Fant den ikke (bør normalt ikke skje) – legg til i stedet.
+        self.add(updated)
+
     def toggle_favorite(self, station: Station) -> None:
         station.favorite = not station.favorite
         self.save()
@@ -156,6 +322,47 @@ class StationLibrary:
             if q in s.name.lower() or q in s.genre.lower() or q in s.country.lower()
         ]
 
+    # -- import/eksport --------------------------------------------------
+
+    def export_to_path(self, path: Path) -> int:
+        """Eksporterer hele stasjonslisten som en selvstendig JSON-fil,
+        med et enkelt filformat-stempel slik at importen kan verifisere den."""
+        payload = {
+            "format": "gnome-radio-stations",
+            "format_version": 1,
+            "exported": datetime.now(timezone.utc).isoformat(),
+            "station_count": len(self._stations),
+            "stations": [s.to_dict() for s in self._stations],
+        }
+        path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        return len(self._stations)
+
+    def import_from_path(self, path: Path, replace: bool = False) -> int:
+        """Importerer stasjoner fra en fil eksportert med export_to_path()
+        (eller en enkel liste av stasjon-objekter). Slår som standard sammen
+        med eksisterende liste (dedupliserer på URL) med mindre replace=True."""
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(raw, dict) and "stations" in raw:
+            entries = raw["stations"]
+        elif isinstance(raw, list):
+            entries = raw
+        else:
+            raise ValueError("Ukjent filformat – fant ingen stasjonsliste")
+
+        imported = [Station.from_dict(s) for s in entries]
+
+        if replace:
+            self._stations = imported
+        else:
+            existing_urls = {s.url for s in self._stations}
+            for station in imported:
+                if station.url not in existing_urls:
+                    self._stations.append(station)
+                    existing_urls.add(station.url)
+
+        self.save()
+        return len(imported)
+
 
 # ---------------------------------------------------------------------------
 # Avspiller (GStreamer-innkapsling)
@@ -172,6 +379,7 @@ class RadioPlayer(GObject.Object):
     __gsignals__ = {
         "state-changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
         "station-changed": (GObject.SignalFlags.RUN_FIRST, None, (object,)),
+        "track-changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         "error": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
     }
 
@@ -185,12 +393,15 @@ class RadioPlayer(GObject.Object):
         self._current_station: Optional[Station] = None
         self._state = PlaybackState.STOPPED
         self._volume = 1.0
+        self._muted = False
+        self._pre_mute_volume = 1.0
 
         bus = self._playbin.get_bus()
         bus.add_signal_watch()
         bus.connect("message::error", self._on_bus_error)
         bus.connect("message::buffering", self._on_bus_buffering)
         bus.connect("message::state-changed", self._on_bus_state_changed)
+        bus.connect("message::tag", self._on_bus_tag)
 
     # -- offentlig API ----------------------------------------------------
 
@@ -209,7 +420,22 @@ class RadioPlayer(GObject.Object):
     @volume.setter
     def volume(self, value: float) -> None:
         self._volume = max(0.0, min(1.0, value))
+        self._muted = self._volume == 0.0
         self._playbin.set_property("volume", self._volume)
+
+    @property
+    def is_muted(self) -> bool:
+        return self._muted
+
+    def toggle_mute(self) -> None:
+        if self._muted:
+            self._muted = False
+            self.volume = self._pre_mute_volume or 1.0
+        else:
+            self._pre_mute_volume = self._volume if self._volume > 0 else 1.0
+            self._muted = True
+            self.volume = 0.0
+            self._muted = True  # volume-setteren nullstiller flagget over, så sett det tilbake
 
     def play(self, station: Station) -> None:
         self._current_station = station
@@ -219,10 +445,12 @@ class RadioPlayer(GObject.Object):
         self._playbin.set_state(Gst.State.PLAYING)
         self._set_state(PlaybackState.BUFFERING)
         self.emit("station-changed", station)
+        self.emit("track-changed", "")  # nullstill forrige sporinfo
 
     def stop(self) -> None:
         self._playbin.set_state(Gst.State.NULL)
         self._set_state(PlaybackState.STOPPED)
+        self.emit("track-changed", "")
 
     def toggle_pause(self) -> None:
         if self._state == PlaybackState.PLAYING:
@@ -259,19 +487,354 @@ class RadioPlayer(GObject.Object):
         if new == Gst.State.PLAYING and self._state != PlaybackState.PLAYING:
             self._set_state(PlaybackState.PLAYING)
 
+    def _on_bus_tag(self, _bus, message) -> None:
+        """Plukker ut løpende metadata fra strømmen (f.eks. 'artist – tittel')."""
+        tags = message.parse_tag()
+        title = None
+        ok, value = tags.get_string("title")
+        if ok:
+            title = value
+        else:
+            ok, value = tags.get_string("organization-name")
+            if ok:
+                title = value
+        if title:
+            self.emit("track-changed", title)
+
+
+# ---------------------------------------------------------------------------
+# MPRIS2-integrasjon
+# ---------------------------------------------------------------------------
+
+_MPRIS_INTROSPECTION_XML = """
+<node>
+  <interface name="org.mpris.MediaPlayer2">
+    <method name="Raise"/>
+    <method name="Quit"/>
+    <property name="CanQuit" type="b" access="read"/>
+    <property name="CanRaise" type="b" access="read"/>
+    <property name="HasTrackList" type="b" access="read"/>
+    <property name="Identity" type="s" access="read"/>
+    <property name="DesktopEntry" type="s" access="read"/>
+    <property name="SupportedUriSchemes" type="as" access="read"/>
+    <property name="SupportedMimeTypes" type="as" access="read"/>
+  </interface>
+  <interface name="org.mpris.MediaPlayer2.Player">
+    <method name="Play"/>
+    <method name="Pause"/>
+    <method name="PlayPause"/>
+    <method name="Stop"/>
+    <method name="Next"/>
+    <method name="Previous"/>
+    <property name="PlaybackStatus" type="s" access="read"/>
+    <property name="Metadata" type="a{sv}" access="read"/>
+    <property name="Volume" type="d" access="readwrite"/>
+    <property name="CanGoNext" type="b" access="read"/>
+    <property name="CanGoPrevious" type="b" access="read"/>
+    <property name="CanPlay" type="b" access="read"/>
+    <property name="CanPause" type="b" access="read"/>
+    <property name="CanControl" type="b" access="read"/>
+  </interface>
+</node>
+"""
+
+
+class MPRISService:
+    """Eksponerer RadioPlayer over MPRIS2 (org.mpris.MediaPlayer2) på
+    D-Bus-sesjonsbussen.
+
+    Dette gjør at GNOME Shell sitt medieelement viser stasjonen som
+    spilles, og at medietaster på tastaturet (play/pause/stop) fungerer
+    – uten at RadioPlayer eller RadioWindow trenger å kjenne til D-Bus.
+    """
+
+    BUS_NAME = "org.mpris.MediaPlayer2.gnomeradio"
+    OBJECT_PATH = "/org/mpris/MediaPlayer2"
+    PLAYER_IFACE = "org.mpris.MediaPlayer2.Player"
+    ROOT_IFACE = "org.mpris.MediaPlayer2"
+
+    def __init__(self, player: RadioPlayer) -> None:
+        self._player = player
+        self._connection: Optional[Gio.DBusConnection] = None
+        self._registration_ids: list[int] = []
+
+        self._bus_name_id = Gio.bus_own_name(
+            Gio.BusType.SESSION,
+            self.BUS_NAME,
+            Gio.BusNameOwnerFlags.NONE,
+            self._on_bus_acquired,
+            None,
+            None,
+        )
+
+        self._player.connect(
+            "state-changed", lambda *_a: self._notify_player_props(["PlaybackStatus"])
+        )
+        self._player.connect(
+            "station-changed", lambda *_a: self._notify_player_props(["Metadata"])
+        )
+        self._player.connect(
+            "track-changed", lambda *_a: self._notify_player_props(["Metadata"])
+        )
+
+    # -- oppsett ------------------------------------------------------------
+
+    def _on_bus_acquired(self, connection: Gio.DBusConnection, _name: str) -> None:
+        self._connection = connection
+        node_info = Gio.DBusNodeInfo.new_for_xml(_MPRIS_INTROSPECTION_XML)
+        for interface in node_info.interfaces:
+            reg_id = connection.register_object(
+                self.OBJECT_PATH,
+                interface,
+                self._handle_method_call,
+                self._handle_get_property,
+                self._handle_set_property,
+            )
+            self._registration_ids.append(reg_id)
+        logger.info("MPRIS-tjeneste registrert som %s", self.BUS_NAME)
+
+    def shutdown(self) -> None:
+        if self._connection is not None:
+            for reg_id in self._registration_ids:
+                self._connection.unregister_object(reg_id)
+            self._registration_ids.clear()
+        if self._bus_name_id:
+            Gio.bus_unown_name(self._bus_name_id)
+
+    # -- metodekall -----------------------------------------------------
+
+    def _handle_method_call(
+        self, _connection, _sender, _object_path, interface_name,
+        method_name, _parameters, invocation,
+    ) -> None:
+        if interface_name == self.PLAYER_IFACE:
+            if method_name == "Play":
+                if self._player.state == PlaybackState.PAUSED:
+                    self._player.toggle_pause()
+                elif self._player.current_station is not None:
+                    self._player.play(self._player.current_station)
+            elif method_name == "Pause":
+                if self._player.state == PlaybackState.PLAYING:
+                    self._player.toggle_pause()
+            elif method_name == "PlayPause":
+                self._player.toggle_pause()
+            elif method_name == "Stop":
+                self._player.stop()
+            elif method_name in ("Next", "Previous"):
+                pass  # Ikke støttet ennå – ingen spillelistenavigasjon
+        # org.mpris.MediaPlayer2: Raise/Quit gir ingen effekt i denne appen
+        invocation.return_value(None)
+
+    # -- egenskaper -----------------------------------------------------
+
+    def _handle_get_property(
+        self, _connection, _sender, _object_path, interface_name, property_name
+    ):
+        if interface_name == self.ROOT_IFACE:
+            root_values = {
+                "CanQuit": GLib.Variant("b", False),
+                "CanRaise": GLib.Variant("b", False),
+                "HasTrackList": GLib.Variant("b", False),
+                "Identity": GLib.Variant("s", "GNOME Radio"),
+                "DesktopEntry": GLib.Variant("s", APP_ID),
+                "SupportedUriSchemes": GLib.Variant("as", ["http", "https"]),
+                "SupportedMimeTypes": GLib.Variant("as", []),
+            }
+            return root_values.get(property_name)
+
+        if interface_name == self.PLAYER_IFACE:
+            if property_name == "PlaybackStatus":
+                status = {
+                    PlaybackState.PLAYING: "Playing",
+                    PlaybackState.PAUSED: "Paused",
+                }.get(self._player.state, "Stopped")
+                return GLib.Variant("s", status)
+            if property_name == "Metadata":
+                return GLib.Variant("a{sv}", self._build_metadata())
+            if property_name == "Volume":
+                return GLib.Variant("d", self._player.volume)
+            if property_name == "CanGoNext":
+                return GLib.Variant("b", False)
+            if property_name == "CanGoPrevious":
+                return GLib.Variant("b", False)
+            if property_name == "CanPlay":
+                return GLib.Variant("b", True)
+            if property_name == "CanPause":
+                return GLib.Variant("b", True)
+            if property_name == "CanControl":
+                return GLib.Variant("b", True)
+        return None
+
+    def _handle_set_property(
+        self, _connection, _sender, _object_path, interface_name, property_name, value
+    ) -> bool:
+        if interface_name == self.PLAYER_IFACE and property_name == "Volume":
+            self._player.volume = value.unpack()
+            return True
+        return False
+
+    def _build_metadata(self) -> dict:
+        station = self._player.current_station
+        if station is None:
+            return {}
+        track_id = self.OBJECT_PATH + "/current_track"
+        return {
+            "mpris:trackid": GLib.Variant("o", track_id),
+            "xesam:title": GLib.Variant("s", station.name),
+            "xesam:artist": GLib.Variant("as", [station.genre]),
+            "xesam:album": GLib.Variant("s", station.country),
+        }
+
+    def _notify_player_props(self, prop_names: list[str]) -> None:
+        if self._connection is None:
+            return
+        changed = {}
+        for name in prop_names:
+            value = self._handle_get_property(
+                None, None, None, self.PLAYER_IFACE, name
+            )
+            if value is not None:
+                changed[name] = value
+        if not changed:
+            return
+        self._connection.emit_signal(
+            None,
+            self.OBJECT_PATH,
+            "org.freedesktop.DBus.Properties",
+            "PropertiesChanged",
+            GLib.Variant("(sa{sv}as)", (self.PLAYER_IFACE, changed, [])),
+        )
+
 
 # ---------------------------------------------------------------------------
 # UI-lag
 # ---------------------------------------------------------------------------
 
+class StationMarker(Shumate.Marker):
+    """Én landmarkør på kartet – representerer én radiostasjon.
+
+    Markøren er en liten fargelagt «pin» bygget som et Shumate.Marker-barn,
+    med to tekstlinjer:
+        - metainfo (stasjonens sjanger)
+        - stasjonsnavnet
+
+    Fargen hentes deterministisk fra Tango-paletten basert på strøm-URLen,
+    så samme stasjon alltid får samme farge, og ulike stasjoner er lette
+    å skille fra hverandre på kartet. Favoritter får i tillegg et lite
+    stjerneikon foran metainfo-linjen.
+
+    Posisjonen er spredt innenfor `MARKER_JITTER_RADIUS_KM` rundt landets
+    senterpunkt (se `jittered_coordinates_for_station`), slik at flere
+    stasjoner fra samme land ikke havner oppå hverandre.
+
+    Et klikk på markøren starter avspilling av stasjonen, via
+    `on_activate`-callbacken som gis inn fra MapView/RadioWindow.
+    """
+
+    __gtype_name__ = "StationMarker"
+
+    def __init__(
+        self,
+        station: Station,
+        on_activate: Optional[Callable[[Station], None]] = None,
+    ) -> None:
+        super().__init__()
+        self.station = station
+        _ensure_marker_css_loaded()
+
+        lat, lon = jittered_coordinates_for_station(station)
+        self.set_location(lat, lon)
+
+        css_class, _hex_color = tango_color_for(station.url)
+
+        pin = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
+        pin.add_css_class("station-marker-pin")
+        pin.add_css_class(f"tango-{css_class}")
+
+        meta_text = station.genre or "Ukjent"
+        if station.favorite:
+            meta_text = f"★ {meta_text}"
+        meta_label = Gtk.Label(label=meta_text, xalign=0)
+        meta_label.add_css_class("marker-meta-info")
+
+        name_label = Gtk.Label(label=station.name, xalign=0)
+        name_label.add_css_class("marker-station-name")
+        name_label.set_ellipsize(3)  # Pango.EllipsizeMode.END
+        name_label.set_max_width_chars(18)
+
+        pin.append(meta_label)
+        pin.append(name_label)
+        pin.set_tooltip_text(f"{station.name} – {station.genre} · {station.country}")
+
+        if on_activate is not None:
+            pin.add_css_class("activatable")
+            click_gesture = Gtk.GestureClick()
+            click_gesture.connect(
+                "released", lambda *_a: on_activate(station)
+            )
+            pin.add_controller(click_gesture)
+            pin.set_cursor(Gdk.Cursor.new_from_name("pointer"))
+
+        self.set_child(pin)
+
+
+class MapView(Gtk.Widget):
+    """Viser et OpenStreetMap-kart med en landmarkør for hver stasjon som
+    finnes i biblioteket. Rent visningsobjekt: kjenner ikke til
+    StationLibrary, bare til stasjonslisten den blir bedt om å tegne opp
+    via `set_stations()`.
+    """
+
+    __gtype_name__ = "MapView"
+
+    def __init__(self, on_station_activate: Optional[Callable[[Station], None]] = None) -> None:
+        super().__init__()
+        self.set_layout_manager(Gtk.BinLayout())
+        self._on_station_activate = on_station_activate
+
+        registry = Shumate.MapSourceRegistry.new_with_defaults()
+        osm_source = registry.get_by_id(Shumate.MAP_SOURCE_OSM_MAPNIK)
+
+        self._simple_map = Shumate.SimpleMap()
+        self._simple_map.set_map_source(osm_source)
+        self._simple_map.set_parent(self)
+
+        self._marker_layer = Shumate.MarkerLayer.new(self._simple_map.get_viewport())
+        self._simple_map.get_map().insert_layer_behind(self._marker_layer, None)
+
+        # Startvisning: sentrert over Norden, moderat zoom
+        viewport = self._simple_map.get_viewport()
+        viewport.set_zoom_level(4)
+        self._simple_map.get_map().center_on(*DEFAULT_COORDINATES)
+
+    def set_stations(self, stations: list[Station]) -> None:
+        """Tegner kartet på nytt med én markør per stasjon i listen."""
+        self._marker_layer.remove_all()
+        for station in stations:
+            self._marker_layer.add_marker(
+                StationMarker(station, on_activate=self._on_station_activate)
+            )
+
+    def focus_station(self, station: Station, zoom_level: float = 10.0) -> None:
+        """Panorer/zoom kartet til stasjonens faktiske markørposisjon."""
+        lat, lon = jittered_coordinates_for_station(station)
+        self._simple_map.get_map().go_to_full(lat, lon, zoom_level)
+
+
 class StationRow(Gtk.ListBoxRow):
     """Én rad i stasjonslisten. Rent visningsobjekt, ingen forretningslogikk."""
 
-    def __init__(self, station: Station, on_favorite_toggle: Callable[[Station], None]):
+    def __init__(
+        self,
+        station: Station,
+        on_favorite_toggle: Callable[[Station], None],
+        on_edit: Callable[[Station], None],
+        on_delete: Callable[[Station], None],
+    ):
         super().__init__()
         self.station = station
 
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12,
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8,
                       margin_top=8, margin_bottom=8, margin_start=12, margin_end=12)
 
         text_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, hexpand=True)
@@ -289,9 +852,105 @@ class StationRow(Gtk.ListBoxRow):
         fav_button.set_active(station.favorite)
         fav_button.connect("toggled", lambda _b: on_favorite_toggle(station))
 
+        menu_button = Gtk.MenuButton(icon_name="view-more-symbolic")
+        menu_button.add_css_class("flat")
+        popover_menu = Gio.Menu()
+        popover_menu.append("Rediger", "row.edit")
+        popover_menu.append("Slett", "row.delete")
+        menu_button.set_menu_model(popover_menu)
+
+        actions = Gio.SimpleActionGroup()
+        edit_action = Gio.SimpleAction.new("edit", None)
+        edit_action.connect("activate", lambda *_a: on_edit(station))
+        delete_action = Gio.SimpleAction.new("delete", None)
+        delete_action.connect("activate", lambda *_a: on_delete(station))
+        actions.add_action(edit_action)
+        actions.add_action(delete_action)
+        self.insert_action_group("row", actions)
+
         box.append(text_box)
         box.append(fav_button)
+        box.append(menu_button)
         self.set_child(box)
+
+
+class StationEditDialog(Adw.Window):
+    """Modal dialog for å legge til eller redigere en stasjon.
+
+    Rent visningsobjekt: kjenner ikke til StationLibrary, bare til
+    en `on_save`-callback som mottar den ferdige Station-instansen.
+    """
+
+    def __init__(
+        self,
+        parent: Gtk.Window,
+        on_save: Callable[[Station], None],
+        station: Optional[Station] = None,
+    ) -> None:
+        is_edit = station is not None
+        super().__init__(
+            transient_for=parent,
+            modal=True,
+            default_width=380,
+            default_height=-1,
+            title="Rediger stasjon" if is_edit else "Legg til stasjon",
+        )
+        self._on_save = on_save
+        self._editing_station = station
+
+        toolbar_view = Adw.ToolbarView()
+        header = Adw.HeaderBar()
+        toolbar_view.add_top_bar(header)
+
+        save_button = Gtk.Button(label="Lagre")
+        save_button.add_css_class("suggested-action")
+        save_button.connect("clicked", self._on_save_clicked)
+        header.pack_end(save_button)
+
+        cancel_button = Gtk.Button(label="Avbryt")
+        cancel_button.connect("clicked", lambda _b: self.close())
+        header.pack_start(cancel_button)
+
+        group = Adw.PreferencesGroup(
+            margin_top=16, margin_bottom=16, margin_start=16, margin_end=16
+        )
+
+        self._name_row = Adw.EntryRow(title="Navn")
+        self._url_row = Adw.EntryRow(title="Strøm-URL")
+        self._genre_row = Adw.EntryRow(title="Sjanger")
+        self._country_row = Adw.EntryRow(title="Land")
+
+        if station is not None:
+            self._name_row.set_text(station.name)
+            self._url_row.set_text(station.url)
+            self._genre_row.set_text(station.genre)
+            self._country_row.set_text(station.country)
+        else:
+            self._country_row.set_text("Norge")
+
+        for row in (self._name_row, self._url_row, self._genre_row, self._country_row):
+            group.add(row)
+
+        toolbar_view.set_content(group)
+        self.set_content(toolbar_view)
+
+    def _on_save_clicked(self, _button: Gtk.Button) -> None:
+        name = self._name_row.get_text().strip()
+        url = self._url_row.get_text().strip()
+        if not name or not url:
+            self._name_row.add_css_class("error" if not name else "")
+            self._url_row.add_css_class("error" if not url else "")
+            return
+
+        station = Station(
+            name=name,
+            url=url,
+            genre=self._genre_row.get_text().strip() or "Ukjent",
+            country=self._country_row.get_text().strip() or "Norge",
+            favorite=self._editing_station.favorite if self._editing_station else False,
+        )
+        self._on_save(station)
+        self.close()
 
 
 class RadioWindow(Adw.ApplicationWindow):
@@ -305,7 +964,11 @@ class RadioWindow(Adw.ApplicationWindow):
         self._player = app.player
         self._player.connect("state-changed", self._on_state_changed)
         self._player.connect("station-changed", self._on_station_changed)
+        self._player.connect("track-changed", self._on_track_changed)
         self._player.connect("error", self._on_player_error)
+
+        self._showing_favorites_only = False
+        self._current_search = ""
 
         self._build_ui()
         self._populate_station_list(self._library.all())
@@ -321,6 +984,37 @@ class RadioWindow(Adw.ApplicationWindow):
         search_entry.connect("search-changed", self._on_search_changed)
         header.set_title_widget(search_entry)
 
+        self._favorites_toggle = Gtk.ToggleButton(icon_name="starred-symbolic")
+        self._favorites_toggle.set_tooltip_text("Vis kun favoritter")
+        self._favorites_toggle.connect("toggled", self._on_favorites_filter_toggled)
+        header.pack_start(self._favorites_toggle)
+
+        self._map_toggle = Gtk.ToggleButton(icon_name="mark-location-symbolic")
+        self._map_toggle.set_tooltip_text("Vis kart over stasjoner")
+        self._map_toggle.connect("toggled", self._on_map_view_toggled)
+        header.pack_start(self._map_toggle)
+
+        add_button = Gtk.Button(icon_name="list-add-symbolic")
+        add_button.set_tooltip_text("Legg til stasjon")
+        add_button.connect("clicked", self._on_add_station_clicked)
+        header.pack_end(add_button)
+
+        primary_menu = Gio.Menu()
+        primary_menu.append("Importer stasjoner …", "win.import-stations")
+        primary_menu.append("Eksporter stasjoner …", "win.export-stations")
+        primary_menu_button = Gtk.MenuButton(icon_name="open-menu-symbolic")
+        primary_menu_button.set_menu_model(primary_menu)
+        primary_menu_button.set_tooltip_text("Meny")
+        header.pack_end(primary_menu_button)
+
+        import_action = Gio.SimpleAction.new("import-stations", None)
+        import_action.connect("activate", self._on_import_stations)
+        self.add_action(import_action)
+
+        export_action = Gio.SimpleAction.new("export-stations", None)
+        export_action.connect("activate", self._on_export_stations)
+        self.add_action(export_action)
+
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
 
         self._station_list = Gtk.ListBox()
@@ -333,11 +1027,22 @@ class RadioWindow(Adw.ApplicationWindow):
         scroller.set_margin_top(8)
         scroller.set_margin_start(8)
         scroller.set_margin_end(8)
-        root.append(scroller)
+
+        self._map_view = MapView(on_station_activate=self._on_map_marker_activated)
+        self._map_view.set_vexpand(True)
+
+        self._content_stack = Gtk.Stack(vexpand=True)
+        self._content_stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self._content_stack.add_named(scroller, "list")
+        self._content_stack.add_named(self._map_view, "map")
+        root.append(self._content_stack)
 
         root.append(self._build_playback_bar())
         toolbar_view.set_content(root)
-        self.set_content(toolbar_view)
+
+        self._toast_overlay = Adw.ToastOverlay()
+        self._toast_overlay.set_child(toolbar_view)
+        self.set_content(self._toast_overlay)
 
     def _build_playback_bar(self) -> Gtk.Widget:
         bar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4,
@@ -345,6 +1050,10 @@ class RadioWindow(Adw.ApplicationWindow):
 
         self._now_playing_label = Gtk.Label(label="Ingen stasjon valgt", xalign=0)
         self._now_playing_label.add_css_class("title-3")
+
+        self._track_label = Gtk.Label(label="", xalign=0, visible=False)
+        self._track_label.add_css_class("dim-label")
+        self._track_label.set_ellipsize(3)  # Pango.EllipsizeMode.END
 
         self._status_label = Gtk.Label(label="Stoppet", xalign=0)
         self._status_label.add_css_class("dim-label")
@@ -356,17 +1065,23 @@ class RadioWindow(Adw.ApplicationWindow):
         stop_button = Gtk.Button(icon_name="media-playback-stop-symbolic")
         stop_button.connect("clicked", lambda _b: self._player.stop())
 
+        self._mute_button = Gtk.ToggleButton(icon_name="audio-volume-high-symbolic")
+        self._mute_button.connect("toggled", self._on_mute_toggled)
+
         volume_scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 1, 0.05)
         volume_scale.set_value(self._player.volume)
         volume_scale.set_hexpand(True)
         volume_scale.connect("value-changed",
                               lambda s: setattr(self._player, "volume", s.get_value()))
+        self._volume_scale = volume_scale
 
         controls.append(self._play_pause_button)
         controls.append(stop_button)
+        controls.append(self._mute_button)
         controls.append(volume_scale)
 
         bar.append(self._now_playing_label)
+        bar.append(self._track_label)
         bar.append(self._status_label)
         bar.append(controls)
         return bar
@@ -381,18 +1096,133 @@ class RadioWindow(Adw.ApplicationWindow):
             child = next_child
 
         for station in stations:
-            row = StationRow(station, on_favorite_toggle=self._on_favorite_toggle)
+            row = StationRow(
+                station,
+                on_favorite_toggle=self._on_favorite_toggle,
+                on_edit=self._on_edit_station,
+                on_delete=self._on_delete_station,
+            )
             self._station_list.append(row)
 
+        # Kartet følger samme liste (søk/favorittfilter) som listevisningen,
+        # slik at nye stasjoner får en landmarkør så snart de legges til.
+        self._map_view.set_stations(stations)
+
+    def _refresh_station_list(self) -> None:
+        """Slår sammen gjeldende søk og favoritt-filter og tegner listen på nytt."""
+        stations = self._library.search(self._current_search)
+        if self._showing_favorites_only:
+            stations = [s for s in stations if s.favorite]
+        self._populate_station_list(stations)
+
     def _on_search_changed(self, entry: Gtk.SearchEntry) -> None:
-        results = self._library.search(entry.get_text())
-        self._populate_station_list(results)
+        self._current_search = entry.get_text()
+        self._refresh_station_list()
+
+    def _on_favorites_filter_toggled(self, button: Gtk.ToggleButton) -> None:
+        self._showing_favorites_only = button.get_active()
+        self._refresh_station_list()
+
+    def _on_map_view_toggled(self, button: Gtk.ToggleButton) -> None:
+        self._content_stack.set_visible_child_name("map" if button.get_active() else "list")
 
     def _on_row_activated(self, _listbox, row: StationRow) -> None:
         self._player.play(row.station)
 
+    def _on_map_marker_activated(self, station: Station) -> None:
+        """Starter avspilling når en stasjon klikkes på kartet."""
+        self._player.play(station)
+
     def _on_favorite_toggle(self, station: Station) -> None:
         self._library.toggle_favorite(station)
+        # Alltid oppdater (ikke bare når favorittfilteret er på): kartmarkøren
+        # skal bytte ikon til stjerne så snart en stasjon merkes som favoritt.
+        self._refresh_station_list()
+
+    def _on_add_station_clicked(self, _button: Gtk.Button) -> None:
+        dialog = StationEditDialog(self, on_save=self._on_station_saved)
+        dialog.present()
+
+    def _on_edit_station(self, station: Station) -> None:
+        dialog = StationEditDialog(self, on_save=self._on_station_saved, station=station)
+        dialog.present()
+
+    def _on_station_saved(self, station: Station) -> None:
+        existing_urls = {s.url for s in self._library.all()}
+        is_new_url = station.url not in existing_urls
+        # Enkel heuristikk: hvis dialogen ble åpnet for redigering av en
+        # stasjon som fortsatt finnes med samme URL, bruk update(); ellers add().
+        matching = next((s for s in self._library.all() if s.url == station.url), None)
+        if matching is not None:
+            self._library.update(matching, station)
+            self._toast_overlay.add_toast(Adw.Toast(title=f"Oppdaterte «{station.name}»"))
+        else:
+            self._library.add(station)
+            self._toast_overlay.add_toast(Adw.Toast(title=f"La til «{station.name}»"))
+        self._refresh_station_list()
+
+    def _on_delete_station(self, station: Station) -> None:
+        self._library.remove(station)
+        if self._player.current_station is station:
+            self._player.stop()
+        self._refresh_station_list()
+        self._toast_overlay.add_toast(Adw.Toast(title=f"Slettet «{station.name}»"))
+
+    # -- import/eksport -------------------------------------------------
+
+    def _on_export_stations(self, _action=None, _param=None) -> None:
+        dialog = Gtk.FileDialog(initial_name="radiostasjoner.json")
+        dialog.save(self, None, self._on_export_dialog_done)
+
+    def _on_export_dialog_done(self, dialog: Gtk.FileDialog, result: Gio.AsyncResult) -> None:
+        try:
+            gfile = dialog.save_finish(result)
+        except GLib.Error as exc:
+            logger.info("Eksport avbrutt eller feilet: %s", exc)
+            return
+        path = Path(gfile.get_path())
+        try:
+            count = self._library.export_to_path(path)
+        except OSError as exc:
+            self._toast_overlay.add_toast(Adw.Toast(title=f"Kunne ikke eksportere: {exc}"))
+            return
+        self._toast_overlay.add_toast(
+            Adw.Toast(title=f"Eksporterte {count} stasjoner til {path.name}")
+        )
+
+    def _on_import_stations(self, _action=None, _param=None) -> None:
+        json_filter = Gtk.FileFilter()
+        json_filter.set_name("JSON-filer")
+        json_filter.add_pattern("*.json")
+        filters = Gio.ListStore.new(Gtk.FileFilter)
+        filters.append(json_filter)
+
+        dialog = Gtk.FileDialog(default_filter=json_filter)
+        dialog.set_filters(filters)
+        dialog.open(self, None, self._on_import_dialog_done)
+
+    def _on_import_dialog_done(self, dialog: Gtk.FileDialog, result: Gio.AsyncResult) -> None:
+        try:
+            gfile = dialog.open_finish(result)
+        except GLib.Error as exc:
+            logger.info("Import avbrutt eller feilet: %s", exc)
+            return
+        path = Path(gfile.get_path())
+        try:
+            count = self._library.import_from_path(path, replace=False)
+        except (json.JSONDecodeError, ValueError, KeyError, OSError) as exc:
+            self._toast_overlay.add_toast(Adw.Toast(title=f"Kunne ikke importere: {exc}"))
+            return
+        self._refresh_station_list()
+        self._toast_overlay.add_toast(Adw.Toast(title=f"Importerte {count} stasjoner"))
+
+    def _on_mute_toggled(self, button: Gtk.ToggleButton) -> None:
+        self._player.toggle_mute()
+        muted = self._player.is_muted
+        button.set_icon_name(
+            "audio-volume-muted-symbolic" if muted else "audio-volume-high-symbolic"
+        )
+        self._volume_scale.set_sensitive(not muted)
 
     # -- reaksjoner på RadioPlayer-signaler ---------------------------------
 
@@ -411,11 +1241,22 @@ class RadioWindow(Adw.ApplicationWindow):
 
     def _on_station_changed(self, _player, station: Station) -> None:
         self._now_playing_label.set_label(station.name)
+        self._track_label.set_visible(False)
+        self._track_label.set_label("")
+
+    def _on_track_changed(self, _player, title: str) -> None:
+        if title:
+            self._track_label.set_label(title)
+            self._track_label.set_visible(True)
+        else:
+            self._track_label.set_visible(False)
+            self._track_label.set_label("")
 
     def _on_player_error(self, _player, message: str) -> None:
-        toast = Adw.Toast(title=f"Kunne ikke spille av: {message}")
-        # Krever Adw.ToastOverlay for full funksjon; her nøyer vi oss med logging.
         logger.error("Avspillingsfeil: %s", message)
+        self._toast_overlay.add_toast(
+            Adw.Toast(title=f"Kunne ikke spille av: {message}", timeout=5)
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -430,12 +1271,17 @@ class RadioApplication(Adw.Application):
                           flags=Gio.ApplicationFlags.DEFAULT_FLAGS)
         self.library = StationLibrary()
         self.player = RadioPlayer()
+        self.mpris = MPRISService(self.player)
         self._window: Optional[RadioWindow] = None
 
     def do_activate(self) -> None:  # noqa: N802 (GTK-navnekonvensjon)
         if self._window is None:
             self._window = RadioWindow(self)
         self._window.present()
+
+    def do_shutdown(self) -> None:  # noqa: N802 (GTK-navnekonvensjon)
+        self.mpris.shutdown()
+        Adw.Application.do_shutdown(self)
 
 
 def main() -> int:

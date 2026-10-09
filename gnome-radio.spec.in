@@ -69,6 +69,8 @@ desktop-file-validate %{buildroot}/%{_datadir}/applications/%{name}.desktop
 %{_datadir}/%{name}/org.gnome.Radio.xml
 %{_datadir}/%{name}/doc/AAMOT.txt.xz
 %{_datadir}/%{name}/doc/Aamot-2020.txt.xz
+%{_datadir}/doc/%{name}/gnome-radio-oop.html
+%{_datadir}/doc/%{name}/longwave.html
 %{_datadir}/doc/%{name}/radio.html
 %{_datadir}/doc/%{name}/radio-maps.html
 %{_datadir}/doc/%{name}/studio.html
@@ -93,6 +95,18 @@ desktop-file-validate %{buildroot}/%{_datadir}/applications/%{name}.desktop
 %{_mandir}/man1/%{name}.1*
 
 %changelog
+* Thu Oct 01 2026 Ole Aamot <olekaa@ifi.uio.no> - 84.0.0-1
+- Stable gnome-radio 84.0.0 with Clearmount Institute (Norge)
+
+* Wed Sep 23 2026 Ole Aamot <olekaa@ifi.uio.no> - 83.0.4-1
+- Stable gnome-radio 83.0.4 with gnome-radio.html (CSS3/HTML5/jQuery)
+
+* Sat Aug 29 2026 Ole Aamot <ole@aamot.org> - 83.0.3-1
+- Stable gnome-radio 83.0.3 with gnome-radio-oop.html (HTML5/jQuery)
+
+* Mon Aug 17 2026 Ole Aamot <ole@aamot.org> - 83.0.2-1
+- Stable gnome-radio 83.0.2 with gnome-radio-oop (Python3/GStreamer)
+
 * Tue Aug 11 2026 Ole Aamot <ole@aamot.org> - 83.0-1
 - Stable gnome-radio 83.0 with NRK P1 Rogaland (Stavanger, Norway)
 

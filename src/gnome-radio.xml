@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="http://www.gnomeradio.org/~ole/radio/gnome-radio.xsl" ?>
 <!DOCTYPE gnome_radio SYSTEM "gnome-radio-48.0.dtd">
-<gnome_radio version="83.0">
+<gnome_radio version="84.0.0">
   <station band="Online" id="p4radiohelenorge" name="P4 Radio Hele Norge" rank="1.0" type="com">
     <location>Norge</location>
     <description lang="nb">P4 Radio Hele Norge</description>

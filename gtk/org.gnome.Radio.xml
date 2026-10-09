@@ -1,6 +1,6 @@
 <?xml-stylesheet type="text/xsl" href="https://people.gnome.org/~ole/gtk-internet-radio-locator/internet-radio-locator.xsl" ?>
 <!DOCTYPE internet_radio_locator SYSTEM "internet-radio-locator-48.0.dtd">
-<internet_radio_locator version="78.0">
+<internet_radio_locator version="84.0.0">
   <station band="Online" id="vaticannewsit" name="Vatican News Italiano" rank="1.0" type="va">
     <location>Vatican City</location>
     <description lang="it">Vatican News Italiano is the Italian-language live radio service of Radio Vaticana and Vatican News. The station provides coverage of papal events, liturgical celebrations, Vatican announcements, world news, cultural programming, and religious content with a focus on the Catholic Church and international affairs.</description>

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="https://www.gnomeradio.org/~ole/radio/internet-radio-locator.xsl" ?>
 <!DOCTYPE internet_radio_locator SYSTEM "internet-radio-locator-48.0.dtd">
-<internet_radio_locator version="83.0">
+<internet_radio_locator version="84.0.0">
   <station band="Online" id="p4radiohelenorge" name="P4 Radio Hele Norge" rank="1.0" type="no">
     <location>Norge</location>
     <description lang="nb">P4 Radio Hele Norge</description>

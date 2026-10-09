@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-stylesheet type="text/xsl" href="http://www.gnomeradio.org/~ole/radio/gtk-radio.xsl" ?>
 <!DOCTYPE radio SYSTEM "gtk-radio-550.3.dtd">
-<radio version="583.0">
+<radio version="584.0.0">
   <station band="Online" id="p4radiohelenorge" name="P4 Radio Hele Norge" rank="1.0" type="no">
     <location>Norge</location>
     <description lang="nb">P4 Radio Hele Norge</description>
