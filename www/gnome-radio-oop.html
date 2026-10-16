@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Norge - Radio 83.0.2 — HTML5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=Barlow:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ------------------------------------------------------------------
+   Norge - Radio — HTML5
+   Fargene er Tango-paletten, slik markørene i libshumate-visningen.
+   Frontpanelet er tenkt som et Tandberg-mottakerpanel: børstet
+   aluminium, mørkt skalavindu med gult baklys.
+   ------------------------------------------------------------------ */
+:root{
+  --alu:        #d3d7cf;
+  --alu-hi:     #eeeeec;
+  --alu-lo:     #babdb6;
+  --ink:        #2e3436;
+  --ink-soft:   #555753;
+  --dial-bg:    #23292b;
+  --backlight:  #fce94f;
+  --butter:     #edd400;
+  --scarlet:    #cc0000;
+  --sky:        #3465a4;
+  --chameleon:  #73d216;
+  --orange:     #f57900;
+  --plum:       #75507b;
+  --chocolate:  #c17d11;
+
+  --display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body:    "Barlow", system-ui, -apple-system, sans-serif;
+  --mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius: 3px;
+  --panel-pad: 20px;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--body);
+  color:var(--ink);
+  background:
+    linear-gradient(180deg, #f2f3f0 0%, #dfe2dc 100%);
+  min-height:100vh;
+  padding:18px;
+  font-size:15px;
+  line-height:1.45;
+}
+
+.receiver{
+  max-width:1080px;
+  margin:0 auto;
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(255,255,255,.55) 0px, rgba(255,255,255,.55) 1px,
+      rgba(0,0,0,.02) 1px, rgba(0,0,0,.02) 3px),
+    linear-gradient(180deg, var(--alu-hi), var(--alu));
+  border:1px solid var(--alu-lo);
+  border-radius:var(--radius);
+  box-shadow:0 1px 0 #fff inset, 0 10px 28px rgba(46,52,54,.18);
+  overflow:hidden;
+}
+
+/* ---------- topplist ---------- */
+.brand{
+  display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+  padding:14px var(--panel-pad);
+  border-bottom:1px solid var(--alu-lo);
+}
+.brand h1{
+  font-family:var(--display);
+  font-weight:600;
+  font-size:22px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  margin:0;
+}
+.brand .ver{font-family:var(--mono); font-size:12px; color:var(--ink-soft)}
+.brand .spacer{flex:1}
+.onair{
+  font-family:var(--display);
+  text-transform:uppercase; letter-spacing:.16em; font-size:12px;
+  display:inline-flex; align-items:center; gap:8px;
+  color:var(--ink-soft);
+}
+.onair .lamp{
+  width:9px;height:9px;border-radius:50%;
+  background:var(--alu-lo);
+  box-shadow:0 0 0 1px rgba(0,0,0,.15) inset;
+}
+.onair[data-live="true"]{color:var(--scarlet)}
+.onair[data-live="true"] .lamp{
+  background:var(--scarlet);
+  box-shadow:0 0 8px rgba(204,0,0,.8);
+}
+
+/* ---------- skalavindu ---------- */
+.dial-window{
+  margin:var(--panel-pad);
+  background:
+    radial-gradient(120% 160% at 50% 0%, #33393b 0%, var(--dial-bg) 60%, #1a1f21 100%);
+  border:1px solid #101415;
+  border-radius:var(--radius);
+  box-shadow:0 2px 10px rgba(0,0,0,.35) inset;
+  padding:12px 14px 8px;
+  position:relative;
+}
+.dial-readout{
+  display:flex; align-items:flex-end; justify-content:space-between; gap:16px;
+  color:var(--backlight);
+  margin-bottom:6px;
+}
+.dial-readout .freq{
+  font-family:var(--mono);
+  font-size:34px; font-weight:500;
+  line-height:1;
+  letter-spacing:-.01em;
+  text-shadow:0 0 14px rgba(252,233,79,.35);
+}
+.dial-readout .freq small{font-size:14px; opacity:.7; margin-left:4px}
+.dial-readout .station-name{
+  font-family:var(--display);
+  font-size:19px; letter-spacing:.06em; text-transform:uppercase;
+  color:#f6f7f2;
+  text-align:right;
+  min-height:1.2em;
+}
+.dial-readout .station-sub{
+  font-family:var(--mono); font-size:11px; color:#9aa19c; text-align:right;
+}
+svg.scale{display:block; width:100%; height:auto; touch-action:none; cursor:ew-resize}
+svg.scale:focus-visible{outline:2px solid var(--backlight); outline-offset:3px}
+
+/* ---------- transport ---------- */
+.transport{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:0 var(--panel-pad) 16px;
+}
+button{font:inherit; color:inherit}
+.btn{
+  font-family:var(--display);
+  text-transform:uppercase; letter-spacing:.1em; font-size:13px;
+  background:linear-gradient(180deg,#fbfbfa,#dcdfd9);
+  border:1px solid var(--alu-lo);
+  border-radius:var(--radius);
+  padding:8px 14px;
+  cursor:pointer;
+  box-shadow:0 1px 0 #fff inset;
+}
+.btn:hover{background:linear-gradient(180deg,#fff,#e6e9e3)}
+.btn:active{box-shadow:0 1px 3px rgba(0,0,0,.2) inset; transform:translateY(1px)}
+.btn:focus-visible{outline:2px solid var(--sky); outline-offset:2px}
+.btn.primary{
+  background:linear-gradient(180deg,#3f74b8,var(--sky));
+  border-color:#274d7d; color:#fff;
+  box-shadow:0 1px 0 rgba(255,255,255,.25) inset;
+  min-width:104px;
+}
+.btn.primary:hover{background:linear-gradient(180deg,#4a80c6,#3a6cad)}
+.btn.icon{min-width:44px; text-align:center}
+.btn[disabled]{opacity:.45; cursor:not-allowed}
+
+.fader{display:flex; align-items:center; gap:9px; margin-left:auto}
+.fader label{
+  font-family:var(--display); text-transform:uppercase;
+  letter-spacing:.14em; font-size:11px; color:var(--ink-soft);
+}
+input[type=range]{
+  -webkit-appearance:none; appearance:none;
+  width:130px; height:22px; background:transparent; cursor:pointer;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:4px; background:var(--ink-soft); border-radius:2px;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none;
+  width:12px; height:22px; margin-top:-9px;
+  background:linear-gradient(180deg,#fbfbfa,#c8ccc4);
+  border:1px solid var(--ink-soft); border-radius:2px;
+}
+input[type=range]::-moz-range-track{height:4px; background:var(--ink-soft); border-radius:2px}
+input[type=range]::-moz-range-thumb{
+  width:12px;height:22px;border-radius:2px;
+  background:linear-gradient(180deg,#fbfbfa,#c8ccc4); border:1px solid var(--ink-soft);
+}
+input[type=range]:focus-visible{outline:2px solid var(--sky); outline-offset:4px}
+
+.status{
+  font-family:var(--mono); font-size:12px; color:var(--ink-soft);
+  min-width:12ch;
+}
+.status[data-state="error"]{color:var(--scarlet)}
+.status[data-state="playing"]{color:#4b7d16}
+
+/* ---------- faner ---------- */
+.tabs{
+  display:flex; gap:0; border-top:1px solid var(--alu-lo); border-bottom:1px solid var(--alu-lo);
+  background:linear-gradient(180deg,#e7eae4,#d8dcd5);
+  padding:0 var(--panel-pad);
+  overflow-x:auto;
+}
+.tab{
+  font-family:var(--display); text-transform:uppercase; letter-spacing:.14em; font-size:12px;
+  background:none; border:none; border-bottom:2px solid transparent;
+  padding:11px 16px; cursor:pointer; color:var(--ink-soft); white-space:nowrap;
+}
+.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--scarlet)}
+.tab:focus-visible{outline:2px solid var(--sky); outline-offset:-4px}
+
+.panel{padding:var(--panel-pad)}
+.panel[hidden]{display:none}
+
+/* ---------- stasjonsliste ---------- */
+.list-head{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;
+}
+.list-head h2{
+  font-family:var(--display); font-size:14px; text-transform:uppercase;
+  letter-spacing:.16em; margin:0; font-weight:600;
+}
+.count{font-family:var(--mono); font-size:12px; color:var(--ink-soft)}
+.search{
+  margin-left:auto;
+  font-family:var(--body); font-size:14px;
+  padding:7px 10px; border:1px solid var(--alu-lo); border-radius:var(--radius);
+  background:#fbfbfa; min-width:0; width:190px;
+}
+.search:focus-visible{outline:2px solid var(--sky); outline-offset:1px}
+
+ul.stations{list-style:none; margin:0; padding:0; border-top:1px solid var(--alu-lo)}
+li.station{
+  display:grid;
+  grid-template-columns:10px minmax(0,1fr) auto;
+  gap:0 12px;
+  align-items:center;
+  padding:9px 4px;
+  border-bottom:1px solid rgba(186,189,182,.6);
+}
+li.station[data-current="true"]{background:rgba(52,101,164,.09)}
+.swatch{width:10px;height:10px;border-radius:2px; align-self:center}
+.st-main{min-width:0}
+.st-name{
+  font-family:var(--display); font-size:16px; letter-spacing:.03em;
+  display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.st-meta{font-family:var(--mono); font-size:11px; color:var(--ink-soft)}
+.st-actions{display:flex; gap:6px; align-items:center}
+.mini{
+  border:1px solid var(--alu-lo); background:#fbfbfa; border-radius:var(--radius);
+  width:32px; height:30px; cursor:pointer; font-size:14px; line-height:1;
+  display:grid; place-items:center;
+}
+.mini:hover{background:#fff}
+.mini:focus-visible{outline:2px solid var(--sky); outline-offset:2px}
+.mini[aria-pressed="true"]{color:var(--butter); background:#2e3436; border-color:#2e3436}
+.mini.play{width:auto; padding:0 12px; font-family:var(--display); text-transform:uppercase; letter-spacing:.1em; font-size:12px}
+
+/* ---------- skjema ---------- */
+.editor{
+  border:1px solid var(--alu-lo); border-radius:var(--radius);
+  background:#fbfbfa; padding:14px; margin-top:14px;
+}
+.editor h3{
+  font-family:var(--display); text-transform:uppercase; letter-spacing:.14em;
+  font-size:13px; margin:0 0 10px;
+}
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px}
+.field{display:flex; flex-direction:column; gap:4px; min-width:0}
+.field label{
+  font-family:var(--display); text-transform:uppercase; letter-spacing:.12em;
+  font-size:11px; color:var(--ink-soft);
+}
+.field input, .field select{
+  font-family:var(--body); font-size:14px;
+  padding:7px 9px; border:1px solid var(--alu-lo); border-radius:var(--radius);
+  background:#fff; min-width:0;
+}
+.field input:focus-visible, .field select:focus-visible{outline:2px solid var(--sky); outline-offset:1px}
+.editor-actions{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap}
+.hint{font-size:13px; color:var(--ink-soft); margin:10px 0 0}
+
+/* ---------- kart ---------- */
+.map-wrap{display:grid; grid-template-columns:minmax(0,1fr) 220px; gap:18px}
+@media (max-width:720px){.map-wrap{grid-template-columns:1fr}}
+svg.map{
+  display:block; width:100%; height:auto;
+  background:linear-gradient(180deg,#eef1ea,#e2e6df);
+  border:1px solid var(--alu-lo); border-radius:var(--radius);
+}
+svg.map .land{fill:#f7f8f4; stroke:var(--ink-soft); stroke-width:1.1; stroke-linejoin:round}
+svg.map .grat{stroke:var(--alu-lo); stroke-width:.6; fill:none}
+svg.map .gtext{font-family:var(--mono); font-size:9px; fill:#9aa19c}
+svg.map .marker{cursor:pointer}
+svg.map .marker circle{stroke:#fff; stroke-width:1.6}
+svg.map .marker:focus-visible{outline:none}
+svg.map .marker:focus-visible circle{stroke:var(--ink); stroke-width:2.4}
+svg.map .marker text{
+  font-family:var(--display); font-size:10px; letter-spacing:.04em; fill:var(--ink);
+}
+.legend h3{
+  font-family:var(--display); text-transform:uppercase; letter-spacing:.14em;
+  font-size:12px; margin:0 0 8px;
+}
+.legend ul{list-style:none; margin:0; padding:0; font-size:13px}
+.legend li{display:flex; align-items:center; gap:8px; padding:3px 0}
+.legend .dot{width:9px;height:9px;border-radius:50%; flex:none}
+
+/* ---------- data ---------- */
+textarea.json{
+  width:100%; min-height:280px;
+  font-family:var(--mono); font-size:12.5px; line-height:1.5;
+  padding:12px; border:1px solid var(--alu-lo); border-radius:var(--radius);
+  background:#fbfbfa; resize:vertical;
+}
+textarea.json:focus-visible{outline:2px solid var(--sky); outline-offset:1px}
+.data-actions{display:flex; gap:8px; flex-wrap:wrap; margin:12px 0}
+
+/* ---------- om ---------- */
+.about{max-width:62ch}
+.about h2{font-family:var(--display); text-transform:uppercase; letter-spacing:.14em; font-size:14px; margin:0 0 8px}
+.about h3{font-family:var(--display); text-transform:uppercase; letter-spacing:.12em; font-size:12px; margin:20px 0 6px; color:var(--ink-soft)}
+.about code{font-family:var(--mono); font-size:12.5px; background:#e7eae4; padding:1px 4px; border-radius:2px}
+.about ul{padding-left:1.1em}
+
+/* ---------- varsel ---------- */
+.toast{
+  position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(8px);
+  background:var(--ink); color:#f6f7f2;
+  font-family:var(--mono); font-size:13px;
+  padding:9px 16px; border-radius:var(--radius);
+  opacity:0; pointer-events:none; transition:opacity .18s, transform .18s;
+  z-index:50; max-width:90vw;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none !important; animation:none !important}
+}
+</style>
+</head>
+<body>
+
+<main class="receiver">
+
+  <div class="brand">
+    <h1>Norge - Radio</h1>
+    <span class="ver">83.0.2 · html5</span>
+    <span class="spacer"></span>
+    <span class="onair" id="onair" data-live="false"><span class="lamp"></span><span id="onairText">av lufta</span></span>
+  </div>
+
+  <!-- Skalavindu: signaturelementet. Stasjonene ligger på sin egen
+       FM-frekvens, og nåla flytter seg dit når du velger en kanal. -->
+  <div class="dial-window">
+    <div class="dial-readout">
+      <div>
+        <span class="freq" id="freqReadout">93.5<small>MHz</small></span>
+      </div>
+      <div>
+        <div class="station-name" id="dialName">Ingen stasjon</div>
+        <div class="station-sub" id="dialSub">vri på skalaen for å søke</div>
+      </div>
+    </div>
+    <svg class="scale" id="scale" viewBox="0 0 1000 132" role="slider"
+         tabindex="0" aria-label="Frekvensskala"
+         aria-valuemin="87.5" aria-valuemax="108" aria-valuenow="93.5"
+         aria-valuetext="93,5 megahertz"></svg>
+  </div>
+
+  <div class="transport">
+    <button class="btn icon" id="prevBtn" title="Forrige stasjon" aria-label="Forrige stasjon">◀◀</button>
+    <button class="btn primary" id="playBtn">Spill</button>
+    <button class="btn icon" id="nextBtn" title="Neste stasjon" aria-label="Neste stasjon">▶▶</button>
+    <span class="status" id="status" data-state="idle" role="status">klar</span>
+    <div class="fader">
+      <label for="vol">Volum</label>
+      <input type="range" id="vol" min="0" max="100" value="80" aria-label="Volum">
+      <span class="status" id="volReadout" style="min-width:4ch">80</span>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Visninger">
+    <button class="tab" role="tab" id="tab-stations" aria-controls="panel-stations" aria-selected="true">Stasjoner</button>
+    <button class="tab" role="tab" id="tab-map" aria-controls="panel-map" aria-selected="false">Kart</button>
+    <button class="tab" role="tab" id="tab-data" aria-controls="panel-data" aria-selected="false">Data</button>
+    <button class="tab" role="tab" id="tab-about" aria-controls="panel-about" aria-selected="false">Om</button>
+  </div>
+
+  <!-- ============ Stasjoner ============ -->
+  <section class="panel" id="panel-stations" role="tabpanel" aria-labelledby="tab-stations">
+    <div class="list-head">
+      <h2>Stasjoner</h2>
+      <span class="count" id="stationCount"></span>
+      <input class="search" id="search" type="search" placeholder="Filtrer på navn, sted eller sjanger" aria-label="Filtrer stasjoner">
+    </div>
+    <ul class="stations" id="stationList"></ul>
+    <p class="hint" id="emptyHint" hidden>Ingen treff. Tøm filteret, eller legg til en stasjon.</p>
+
+    <div class="editor">
+      <h3 id="editorTitle">Legg til stasjon</h3>
+      <div class="grid">
+        <div class="field"><label for="f-name">Navn</label><input id="f-name" placeholder="NRK P2"></div>
+        <div class="field"><label for="f-url">Strøm-URL</label><input id="f-url" placeholder="https://…/stream.mp3"></div>
+        <div class="field"><label for="f-freq">Frekvens (MHz)</label><input id="f-freq" type="number" step="0.1" min="87.5" max="108" placeholder="96.1"></div>
+        <div class="field"><label for="f-city">Sted</label><input id="f-city" placeholder="Oslo"></div>
+        <div class="field"><label for="f-genre">Sjanger</label><input id="f-genre" placeholder="Kultur"></div>
+        <div class="field"><label for="f-lat">Breddegrad</label><input id="f-lat" type="number" step="0.01" placeholder="59.91"></div>
+        <div class="field"><label for="f-lon">Lengdegrad</label><input id="f-lon" type="number" step="0.01" placeholder="10.75"></div>
+        <div class="field"><label for="f-color">Farge</label>
+          <select id="f-color">
+            <option value="#3465a4">Himmelblå</option>
+            <option value="#cc0000">Skarlagen</option>
+            <option value="#73d216">Kameleon</option>
+            <option value="#f57900">Oransje</option>
+            <option value="#75507b">Plomme</option>
+            <option value="#c17d11">Sjokolade</option>
+            <option value="#edd400">Smør</option>
+          </select>
+        </div>
+      </div>
+      <div class="editor-actions">
+        <button class="btn primary" id="saveStation">Lagre stasjon</button>
+        <button class="btn" id="cancelEdit" hidden>Avbryt</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Kart ============ -->
+  <section class="panel" id="panel-map" role="tabpanel" aria-labelledby="tab-map" hidden>
+    <div class="map-wrap">
+      <svg class="map" id="map" viewBox="0 0 520 640" role="group" aria-label="Kart over senderplasseringer"></svg>
+      <div class="legend">
+        <h3>Velg på kartet</h3>
+        <p class="hint" style="margin-top:0">Trykk på en markør for å stille inn og spille av. Markørfargene følger stasjonens farge i JSON-fila.</p>
+        <ul id="mapLegend"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Data ============ -->
+  <section class="panel" id="panel-data" role="tabpanel" aria-labelledby="tab-data" hidden>
+    <h2 style="font-family:var(--display); text-transform:uppercase; letter-spacing:.16em; font-size:14px; margin:0 0 6px">Stasjonsformat</h2>
+    <p class="hint" style="margin-top:0">Samme JSON-struktur som i gnome-radio-oop. Rediger direkte, eller importer ei fil. Endringer lever i minnet — eksporter for å ta dem med videre.</p>
+    <div class="data-actions">
+      <button class="btn primary" id="applyJson">Bruk JSON</button>
+      <button class="btn" id="exportJson">Eksporter fil</button>
+      <button class="btn" id="importJson">Importer fil</button>
+      <button class="btn" id="resetJson">Tilbakestill</button>
+      <input type="file" id="fileInput" accept=".json,application/json" class="sr">
+    </div>
+    <textarea class="json" id="jsonArea" spellcheck="false" aria-label="Stasjoner som JSON"></textarea>
+    <p class="hint" id="jsonError" style="color:var(--scarlet)" hidden></p>
+  </section>
+
+  <!-- ============ Om ============ -->
+  <section class="panel about" id="panel-about" role="tabpanel" aria-labelledby="tab-about" hidden>
+    <h2>Om denne utgaven</h2>
+    <p>Dette er Norge - Radio bygd som én HTML5-fil: samme oppdeling i objekter som Python/GTK4-utgaven, men med nettleserens egne API-er i stedet for GStreamer, libshumate og D-Bus.</p>
+
+    <h3>Klasser</h3>
+    <ul>
+      <li><code>Station</code> — én kanal, med frekvens, posisjon og farge</li>
+      <li><code>StationStore</code> — CRUD, favoritter, import og eksport</li>
+      <li><code>RadioPlayer</code> — avspilling og tilstandsmaskin over <code>&lt;audio&gt;</code></li>
+      <li><code>MediaSessionAdapter</code> — MPRIS2-erstatning via Media Session API</li>
+      <li><code>DialView</code>, <code>StationListView</code>, <code>MapView</code>, <code>DataView</code></li>
+      <li><code>Application</code> — kobler lager, spiller og visninger sammen</li>
+    </ul>
+
+    <h3>Slik svarer det til GTK-utgaven</h3>
+    <ul>
+      <li>GStreamer <code>playbin</code> → <code>HTMLAudioElement</code></li>
+      <li>MPRIS2 over D-Bus → <code>navigator.mediaSession</code> med spill, pause og kanalbytte</li>
+      <li>libshumate-kart → tegnet SVG-kart med de samme Tango-fargene</li>
+      <li>JSON-stasjonsfil → samme skjema, lest og skrevet i Data-fanen</li>
+    </ul>
+
+    <h3>Det nettleseren ikke får til</h3>
+    <ul>
+      <li>ICY-metadata om låt og artist krever CORS-tilgang på strømmen; panelet viser derfor kanalinfo og avspillingstilstand.</li>
+      <li>FPGA-brua mot ICENode hører hjemme på maskina, ikke i nettleseren.</li>
+      <li>Ingen lagring på disk: eksporter JSON for å beholde endringene.</li>
+    </ul>
+
+    <h3>Tastatur</h3>
+    <ul>
+      <li><code>←</code> <code>→</code> på skalaen: finstill 0,1 MHz</li>
+      <li><code>↑</code> <code>↓</code>: hopp til neste eller forrige stasjon</li>
+      <li><code>Mellomrom</code> på skalaen: spill eller pause</li>
+    </ul>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<audio id="audio" preload="none"></audio>
+
+<script>
+"use strict";
+
+/* ==================================================================
+   Norge - Radio — HTML5
+   Objektorientert oppbygging, speilet fra Python/GTK4-utgaven.
+   ================================================================== */
+
+/* ---------- liten hendelsesbuss, felles basisklasse ---------- */
+class Emitter {
+  constructor(){ this._handlers = new Map(); }
+  on(name, fn){
+    if(!this._handlers.has(name)) this._handlers.set(name, new Set());
+    this._handlers.get(name).add(fn);
+    return () => this._handlers.get(name).delete(fn);
+  }
+  emit(name, payload){
+    const set = this._handlers.get(name);
+    if(set) for(const fn of set) fn(payload);
+  }
+}
+
+/* ---------- domenemodell ---------- */
+const TANGO = ["#3465a4","#cc0000","#73d216","#f57900","#75507b","#c17d11","#edd400"];
+
+class Station {
+  constructor(data = {}){
+    this.id        = data.id || Station.newId(data.name);
+    this.name      = (data.name || "Uten navn").trim();
+    this.url       = (data.url || "").trim();
+    this.frequency = Station.clampFreq(data.frequency);
+    this.city      = (data.city || "").trim();
+    this.genre     = (data.genre || "").trim();
+    this.lat       = Station.coord(data.lat);
+    this.lon       = Station.coord(data.lon);
+    this.color     = data.color || TANGO[0];
+    this.favorite  = !!data.favorite;
+  }
+  static newId(name){
+    const base = (name || "stasjon").toLowerCase()
+      .replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"") || "stasjon";
+    return base + "-" + Math.random().toString(36).slice(2,6);
+  }
+  static coord(v){
+    if(v === null || v === undefined || v === "") return null;
+    return Number.isFinite(+v) ? +v : null;
+  }
+  static clampFreq(v){
+    const f = Number.isFinite(+v) ? +v : 87.5;
+    return Math.min(108, Math.max(87.5, Math.round(f * 10) / 10));
+  }
+  get hasPosition(){ return this.lat !== null && this.lon !== null; }
+  get label(){
+    const bits = [this.frequency.toFixed(1) + " MHz"];
+    if(this.city) bits.push(this.city);
+    if(this.genre) bits.push(this.genre);
+    return bits.join(" · ");
+  }
+  toJSON(){
+    return {
+      id:this.id, name:this.name, url:this.url, frequency:this.frequency,
+      city:this.city, genre:this.genre, lat:this.lat, lon:this.lon,
+      color:this.color, favorite:this.favorite
+    };
+  }
+}
+
+/* ---------- lager: CRUD, favoritter, JSON ---------- */
+class StationStore extends Emitter {
+  constructor(stations = []){
+    super();
+    this.stations = stations.map(s => new Station(s));
+    this._sort();
+  }
+  _sort(){ this.stations.sort((a,b) => a.frequency - b.frequency); }
+  _changed(){ this._sort(); this.emit("change", this.stations); }
+
+  all(){ return this.stations.slice(); }
+  byId(id){ return this.stations.find(s => s.id === id) || null; }
+
+  add(data){
+    const st = new Station(data);
+    if(!st.color) st.color = TANGO[this.stations.length % TANGO.length];
+    this.stations.push(st);
+    this._changed();
+    return st;
+  }
+  update(id, data){
+    const st = this.byId(id);
+    if(!st) return null;
+    Object.assign(st, new Station(Object.assign(st.toJSON(), data, {id})));
+    this._changed();
+    return st;
+  }
+  remove(id){
+    const i = this.stations.findIndex(s => s.id === id);
+    if(i < 0) return false;
+    this.stations.splice(i,1);
+    this._changed();
+    return true;
+  }
+  toggleFavorite(id){
+    const st = this.byId(id);
+    if(!st) return;
+    st.favorite = !st.favorite;
+    this._changed();
+  }
+  /* nærmeste stasjon til en frekvens, innenfor toleranse */
+  nearest(freq, tolerance = 0.45){
+    let best = null, bestDist = Infinity;
+    for(const s of this.stations){
+      const d = Math.abs(s.frequency - freq);
+      if(d < bestDist){ best = s; bestDist = d; }
+    }
+    return (best && bestDist <= tolerance) ? best : null;
+  }
+  neighbour(current, dir){
+    if(!this.stations.length) return null;
+    if(!current) return dir > 0 ? this.stations[0] : this.stations[this.stations.length-1];
+    const i = this.stations.indexOf(current);
+    const n = (i + dir + this.stations.length) % this.stations.length;
+    return this.stations[n];
+  }
+  filter(q){
+    const term = (q||"").trim().toLowerCase();
+    if(!term) return this.all();
+    return this.stations.filter(s =>
+      [s.name, s.city, s.genre].join(" ").toLowerCase().includes(term));
+  }
+  toJSON(){
+    return { format:"gnome-radio/stations", version:1,
+             stations:this.stations.map(s => s.toJSON()) };
+  }
+  replaceFrom(payload){
+    const list = Array.isArray(payload) ? payload : payload && payload.stations;
+    if(!Array.isArray(list)) throw new Error("Fant ingen «stations»-liste i fila.");
+    this.stations = list.map((s,i) =>
+      new Station(Object.assign({color:TANGO[i % TANGO.length]}, s)));
+    this._changed();
+  }
+}
+
+/* ---------- avspiller: tilstandsmaskin over <audio> ---------- */
+class RadioPlayer extends Emitter {
+  constructor(audioEl){
+    super();
+    this.audio = audioEl;
+    this.station = null;
+    this.state = "idle";           // idle | loading | playing | paused | error
+    this.audio.addEventListener("playing", () => this._setState("playing"));
+    this.audio.addEventListener("waiting", () => this._setState("loading"));
+    this.audio.addEventListener("pause",   () => {
+      if(this.state !== "error") this._setState("paused");
+    });
+    this.audio.addEventListener("error",   () => this._fail());
+    this.audio.addEventListener("stalled", () => this._setState("loading"));
+  }
+  _setState(s){
+    if(this.state === s) return;
+    this.state = s;
+    this.emit("state", {state:s, station:this.station});
+  }
+  _fail(){
+    this.state = "error";
+    this.emit("state", {state:"error", station:this.station});
+  }
+  get isLive(){ return this.state === "playing" || this.state === "loading"; }
+
+  async load(station, autoplay = true){
+    this.station = station;
+    this.emit("station", station);
+    if(!station){ this.stop(); return; }
+    if(!station.url){ this._fail(); return; }
+    this.audio.src = station.url;
+    if(autoplay) await this.play();
+  }
+  async play(){
+    if(!this.station || !this.station.url) { this._fail(); return; }
+    this._setState("loading");
+    try { await this.audio.play(); }
+    catch(err){ this._fail(); }
+  }
+  pause(){ this.audio.pause(); }
+  toggle(){ this.isLive ? this.pause() : this.play(); }
+  stop(){
+    this.audio.pause();
+    this.audio.removeAttribute("src");
+    this.audio.load();
+    this._setState("idle");
+  }
+  setVolume(v){ this.audio.volume = Math.min(1, Math.max(0, v)); }
+}
+
+/* ---------- MPRIS2-ekvivalent: Media Session ---------- */
+class MediaSessionAdapter {
+  constructor(player, onPrev, onNext){
+    if(!("mediaSession" in navigator)) { this.enabled = false; return; }
+    this.enabled = true;
+    this.ms = navigator.mediaSession;
+    this.ms.setActionHandler("play",          () => player.play());
+    this.ms.setActionHandler("pause",         () => player.pause());
+    this.ms.setActionHandler("stop",          () => player.stop());
+    this.ms.setActionHandler("previoustrack", onPrev);
+    this.ms.setActionHandler("nexttrack",     onNext);
+    player.on("station", st => this.publish(st));
+    player.on("state", ({state}) => {
+      this.ms.playbackState =
+        state === "playing" ? "playing" : (state === "paused" ? "paused" : "none");
+    });
+  }
+  publish(station){
+    if(!this.enabled || !("MediaMetadata" in window)) return;
+    if(!station){ this.ms.metadata = null; return; }
+    this.ms.metadata = new MediaMetadata({
+      title: station.name,
+      artist: station.label,
+      album: "Norge - Radio 83.0.2"
+    });
+  }
+}
+
+/* ---------- skalavisning ---------- */
+class DialView extends Emitter {
+  constructor(svg, store){
+    super();
+    this.svg = svg;
+    this.store = store;
+    this.min = 87.5; this.max = 108;
+    this.pad = 26;
+    this.freq = 93.5;
+    this.current = null;
+    this.reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    this._bind();
+  }
+  x(f){
+    const w = 1000 - this.pad*2;
+    return this.pad + (f - this.min) / (this.max - this.min) * w;
+  }
+  freqAt(px){
+    const w = 1000 - this.pad*2;
+    const f = this.min + (px - this.pad) / w * (this.max - this.min);
+    return Math.min(this.max, Math.max(this.min, Math.round(f*10)/10));
+  }
+  _bind(){
+    const svg = this.svg;
+    let dragging = false;
+    const toLocal = ev => {
+      const r = svg.getBoundingClientRect();
+      return (ev.clientX - r.left) / r.width * 1000;
+    };
+    const handle = ev => {
+      this.tuneTo(this.freqAt(toLocal(ev)));
+    };
+    svg.addEventListener("pointerdown", ev => {
+      dragging = true; svg.setPointerCapture(ev.pointerId); svg.focus(); handle(ev);
+    });
+    svg.addEventListener("pointermove", ev => { if(dragging) handle(ev); });
+    const end = ev => {
+      if(!dragging) return;
+      dragging = false;
+      try{ svg.releasePointerCapture(ev.pointerId); }catch(e){}
+      this.emit("settle", this.freq);
+    };
+    svg.addEventListener("pointerup", end);
+    svg.addEventListener("pointercancel", end);
+
+    svg.addEventListener("keydown", ev => {
+      const step = ev.shiftKey ? 0.5 : 0.1;
+      if(ev.key === "ArrowRight"){ this.tuneTo(this.freq + step); this.emit("settle", this.freq); }
+      else if(ev.key === "ArrowLeft"){ this.tuneTo(this.freq - step); this.emit("settle", this.freq); }
+      else if(ev.key === "ArrowUp"){ this.emit("step", 1); }
+      else if(ev.key === "ArrowDown"){ this.emit("step", -1); }
+      else if(ev.key === " " || ev.key === "Spacebar"){ this.emit("toggle"); }
+      else return;
+      ev.preventDefault();
+    });
+  }
+  tuneTo(f){
+    this.freq = Math.min(this.max, Math.max(this.min, Math.round(f*10)/10));
+    this.emit("tune", this.freq);
+    this.render();
+  }
+  setCurrent(station){
+    this.current = station;
+    if(station) this.freq = station.frequency;
+    this.render();
+  }
+  /* signalstyrke 0–1 ut fra avstand til nærmeste stasjon */
+  signal(){
+    const near = this.store.nearest(this.freq, 1.2);
+    if(!near) return 0;
+    const d = Math.abs(near.frequency - this.freq);
+    return Math.max(0, 1 - d / 1.2);
+  }
+  render(){
+    const S = [];
+    const y0 = 18, yBase = 74;
+    /* baklysstripe */
+    S.push(`<rect x="0" y="${y0-6}" width="1000" height="${yBase-y0+12}" fill="rgba(252,233,79,.05)"/>`);
+    /* skalastrek */
+    S.push(`<line x1="${this.pad}" y1="${yBase}" x2="${1000-this.pad}" y2="${yBase}" stroke="#6d7570" stroke-width="1"/>`);
+    for(let f = 88; f <= 108; f += 0.5){
+      const major = Math.abs(f - Math.round(f)) < 0.01;
+      const x = this.x(f);
+      const h = major ? 14 : 7;
+      S.push(`<line x1="${x.toFixed(1)}" y1="${yBase-h}" x2="${x.toFixed(1)}" y2="${yBase}" stroke="#8a938d" stroke-width="${major?1.2:.8}"/>`);
+      if(major && Math.round(f) % 2 === 0){
+        S.push(`<text x="${x.toFixed(1)}" y="${yBase+16}" fill="#9aa19c" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="middle">${f}</text>`);
+      }
+    }
+    /* stasjonsmerker */
+    for(const st of this.store.all()){
+      const x = this.x(st.frequency);
+      const on = this.current && this.current.id === st.id;
+      S.push(`<line x1="${x.toFixed(1)}" y1="${y0}" x2="${x.toFixed(1)}" y2="${yBase-2}" stroke="${st.color}" stroke-width="${on?3:2}" opacity="${on?1:.62}"/>`);
+      if(st.favorite){
+        S.push(`<circle cx="${x.toFixed(1)}" cy="${y0-6}" r="2.6" fill="${st.color}"/>`);
+      }
+    }
+    /* nåla */
+    const nx = this.x(this.freq);
+    S.push(`<g transform="translate(${nx.toFixed(1)},0)">
+      <polygon points="-6,${y0-14} 6,${y0-14} 0,${y0-4}" fill="#f6f7f2"/>
+      <line x1="0" y1="${y0-6}" x2="0" y2="${yBase+4}" stroke="#f6f7f2" stroke-width="1.6"/>
+    </g>`);
+    /* signalmåler */
+    const sig = this.signal();
+    const bars = 14, bw = 9, gap = 4, startX = this.pad;
+    S.push(`<text x="${startX}" y="${yBase+42}" fill="#7d857f" font-family="Barlow Semi Condensed, sans-serif" font-size="11" letter-spacing="1.6">SIGNAL</text>`);
+    for(let i=0;i<bars;i++){
+      const lit = i < Math.round(sig*bars);
+      const x = startX + 54 + i*(bw+gap);
+      S.push(`<rect x="${x}" y="${yBase+32}" width="${bw}" height="12" rx="1"
+        fill="${lit ? (sig>.75?"#73d216":"#edd400") : "#3a4143"}"/>`);
+    }
+    const near = this.store.nearest(this.freq, 0.45);
+    S.push(`<text x="${1000-this.pad}" y="${yBase+42}" text-anchor="end"
+      fill="#7d857f" font-family="IBM Plex Mono, monospace" font-size="11">${
+        near ? "låst" : "søker"}</text>`);
+
+    this.svg.innerHTML = S.join("");
+    this.svg.setAttribute("aria-valuenow", this.freq.toFixed(1));
+    this.svg.setAttribute("aria-valuetext",
+      this.freq.toFixed(1).replace(".",",") + " megahertz" + (near ? ", " + near.name : ""));
+  }
+}
+
+/* ---------- stasjonsliste ---------- */
+class StationListView extends Emitter {
+  constructor(root, store){
+    super();
+    this.root = root; this.store = store;
+    this.query = "";
+    this.currentId = null;
+    this.root.addEventListener("click", ev => {
+      const btn = ev.target.closest("button[data-act]");
+      if(!btn) return;
+      const id = btn.closest("li").dataset.id;
+      this.emit(btn.dataset.act, id);
+    });
+  }
+  setQuery(q){ this.query = q; this.render(); }
+  setCurrent(id){ this.currentId = id; this.render(); }
+  render(){
+    const list = this.store.filter(this.query);
+    const favs = list.filter(s => s.favorite);
+    const rest = list.filter(s => !s.favorite);
+    const rows = favs.concat(rest).map(st => `
+      <li class="station" data-id="${st.id}" data-current="${st.id === this.currentId}">
+        <span class="swatch" style="background:${st.color}"></span>
+        <span class="st-main">
+          <span class="st-name">${esc(st.name)}</span>
+          <span class="st-meta">${esc(st.label)}${st.url ? "" : " · mangler URL"}</span>
+        </span>
+        <span class="st-actions">
+          <button class="mini" data-act="fav" aria-pressed="${st.favorite}"
+                  title="Favoritt" aria-label="Merk ${esc(st.name)} som favoritt">★</button>
+          <button class="mini" data-act="edit" title="Rediger" aria-label="Rediger ${esc(st.name)}">✎</button>
+          <button class="mini" data-act="delete" title="Slett" aria-label="Slett ${esc(st.name)}">✕</button>
+          <button class="mini play" data-act="play" aria-label="Spill ${esc(st.name)}">Spill</button>
+        </span>
+      </li>`).join("");
+    this.root.innerHTML = rows;
+    document.getElementById("emptyHint").hidden = list.length > 0;
+    document.getElementById("stationCount").textContent =
+      `${this.store.all().length} kanaler · ${this.store.all().filter(s=>s.favorite).length} favoritter`;
+  }
+}
+
+/* ---------- kartvisning ---------- */
+class MapView extends Emitter {
+  /* Grov omriss av Norge, brukt som bakgrunn for senderposisjonene. */
+  static OUTLINE = [
+    [57.98,7.05],[58.45,5.90],[58.97,5.60],[60.30,5.05],[61.00,4.85],
+    [62.00,5.10],[62.47,6.00],[63.11,7.73],[63.70,9.60],[64.47,11.20],
+    [65.30,12.20],[66.30,13.00],[67.28,14.40],[68.20,14.60],[68.40,17.40],
+    [69.65,18.96],[70.10,20.50],[70.66,23.68],[71.17,25.78],[70.90,28.20],
+    [70.00,30.00],[69.73,30.05],[69.00,29.00],[68.50,24.00],[68.00,23.00],
+    [66.50,16.50],[65.00,14.20],[64.00,12.70],[63.30,12.00],[62.30,12.10],
+    [61.00,12.70],[60.19,12.50],[59.12,11.45],[59.00,10.90],[58.10,8.00]
+  ];
+  constructor(svg, legend, store){
+    super();
+    this.svg = svg; this.legend = legend; this.store = store;
+    this.currentId = null;
+    this.bounds = {latMin:57.5, latMax:71.5, lonMin:4.0, lonMax:31.5};
+    this.svg.addEventListener("click", ev => {
+      const g = ev.target.closest("g.marker");
+      if(g) this.emit("select", g.dataset.id);
+    });
+    this.svg.addEventListener("keydown", ev => {
+      if(ev.key !== "Enter" && ev.key !== " ") return;
+      const g = ev.target.closest("g.marker");
+      if(g){ ev.preventDefault(); this.emit("select", g.dataset.id); }
+    });
+  }
+  project(lat, lon){
+    const b = this.bounds, W = 520, H = 640, m = 28;
+    const x = m + (lon - b.lonMin) / (b.lonMax - b.lonMin) * (W - m*2);
+    const y = H - m - (lat - b.latMin) / (b.latMax - b.latMin) * (H - m*2);
+    return [x, y];
+  }
+  setCurrent(id){ this.currentId = id; this.render(); }
+  render(){
+    const S = [];
+    /* gradnett */
+    for(let lat = 58; lat <= 71; lat += 2){
+      const [x1,y] = this.project(lat, this.bounds.lonMin);
+      const [x2]   = this.project(lat, this.bounds.lonMax);
+      S.push(`<line class="grat" x1="${x1}" y1="${y.toFixed(1)}" x2="${x2}" y2="${y.toFixed(1)}"/>`);
+      S.push(`<text class="gtext" x="${x1+3}" y="${(y-3).toFixed(1)}">${lat}°N</text>`);
+    }
+    for(let lon = 5; lon <= 30; lon += 5){
+      const [x,y1] = this.project(this.bounds.latMax, lon);
+      const [,y2]  = this.project(this.bounds.latMin, lon);
+      S.push(`<line class="grat" x1="${x.toFixed(1)}" y1="${y1}" x2="${x.toFixed(1)}" y2="${y2}"/>`);
+      S.push(`<text class="gtext" x="${(x+3).toFixed(1)}" y="${y2-4}">${lon}°Ø</text>`);
+    }
+    /* landomriss */
+    const pts = MapView.OUTLINE.map(([la,lo]) => this.project(la,lo).map(n=>n.toFixed(1)).join(","));
+    S.push(`<polygon class="land" points="${pts.join(" ")}"/>`);
+
+    /* markører */
+    const placed = this.store.all().filter(s => s.hasPosition);
+    for(const st of placed){
+      const [x,y] = this.project(st.lat, st.lon);
+      const on = st.id === this.currentId;
+      S.push(`<g class="marker" data-id="${st.id}" tabindex="0" role="button"
+                 aria-label="Spill ${esc(st.name)} i ${esc(st.city || "ukjent sted")}">
+        ${on ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="13" fill="${st.color}" opacity=".22"/>` : ""}
+        <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${on?7:5.5}" fill="${st.color}"/>
+        <text x="${(x+11).toFixed(1)}" y="${(y+4).toFixed(1)}">${esc(st.name)}</text>
+      </g>`);
+    }
+    this.svg.innerHTML = S.join("");
+
+    this.legend.innerHTML = placed.length
+      ? placed.map(st => `<li><span class="dot" style="background:${st.color}"></span>${esc(st.city || st.name)}</li>`).join("")
+      : `<li>Ingen stasjoner har koordinater ennå.</li>`;
+  }
+}
+
+/* ---------- datafane ---------- */
+class DataView extends Emitter {
+  constructor(area, store){
+    super();
+    this.area = area; this.store = store;
+    this.errorEl = document.getElementById("jsonError");
+  }
+  refresh(){
+    this.area.value = JSON.stringify(this.store.toJSON(), null, 2);
+    this.errorEl.hidden = true;
+  }
+  apply(){
+    try{
+      const payload = JSON.parse(this.area.value);
+      this.store.replaceFrom(payload);
+      this.errorEl.hidden = true;
+      this.emit("applied");
+    }catch(err){
+      this.errorEl.textContent = "Kunne ikke lese JSON: " + err.message;
+      this.errorEl.hidden = false;
+    }
+  }
+  export(){
+    const blob = new Blob([JSON.stringify(this.store.toJSON(), null, 2)],
+                          {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "stations.json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+}
+
+/* ---------- hjelpere ---------- */
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c =>
+    ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+}
+let toastTimer;
+function toast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+/* ---------- standardstasjoner ----------
+   Frekvensene er de gamle FM-frekvensene i Oslo-området og er ment som
+   utgangspunkt. Både frekvens og URL redigeres i Data-fanen.          */
+const DEFAULT_STATIONS = [
+  {id:"nrk-p1",   name:"NRK P1",        frequency:93.5,  city:"Oslo",       genre:"Allmenn",
+   url:"https://cdn0-47115-liveicecast0.dna.contentdelivery.net/p1_mp3_h",        lat:59.91, lon:10.75, color:"#3465a4", favorite:true},
+  {id:"nrk-p2",   name:"NRK P2",        frequency:96.1,  city:"Oslo",       genre:"Kultur",
+   url:"https://lyd.nrk.no/nrk_radio_p2_mp3_h",             lat:59.94, lon:10.72, color:"#75507b", favorite:true},
+  {id:"nrk-p3",   name:"NRK P3",        frequency:99.3,  city:"Trondheim",  genre:"Ungdom",
+   url:"https://lyd.nrk.no/nrk_radio_p3_mp3_h",             lat:63.43, lon:10.39, color:"#cc0000"},
+  {id:"nrk-klassisk", name:"NRK Klassisk", frequency:101.7, city:"Bergen",  genre:"Klassisk",
+   url:"https://lyd.nrk.no/nrk_radio_klassisk_mp3_h",       lat:60.39, lon:5.32,  color:"#73d216"},
+  {id:"nrk-jazz", name:"NRK Jazz",      frequency:103.4, city:"Stavanger",  genre:"Jazz",
+   url:"https://lyd.nrk.no/nrk_radio_jazz_mp3_h",           lat:58.97, lon:5.73,  color:"#f57900"},
+  {id:"nrk-folkemusikk", name:"NRK Folkemusikk", frequency:105.2, city:"Gjøvik", genre:"Folkemusikk",
+   url:"https://lyd.nrk.no/nrk_radio_folkemusikk_mp3_h",    lat:60.80, lon:10.69, color:"#c17d11"},
+  {id:"nrk-sapmi", name:"NRK Sápmi",    frequency:107.1, city:"Karasjok",   genre:"Samisk",
+   url:"https://cdn0-47115-liveicecast0.dna.contentdelivery.net/sapmi_mp3_h",          lat:69.47, lon:25.51, color:"#edd400"},
+  {id:"nrk-nordland", name:"NRK Nordland", frequency:90.4, city:"Bodø",     genre:"Distrikt",
+   url:"https://lyd.nrk.no/nrk_radio_p1_nordland_mp3_h",    lat:67.28, lon:14.40, color:"#3465a4"},
+  {id:"nrk-troms", name:"NRK Troms",    frequency:88.6,  city:"Tromsø",     genre:"Distrikt",
+   url:"https://lyd.nrk.no/nrk_radio_p1_troms_mp3_h",       lat:69.65, lon:18.96, color:"#cc0000"}
+];
+
+/* ==================================================================
+   Application — binder lager, spiller og visninger sammen
+   ================================================================== */
+class Application {
+  constructor(){
+    this.store  = new StationStore(DEFAULT_STATIONS);
+    this.player = new RadioPlayer(document.getElementById("audio"));
+    this.dial   = new DialView(document.getElementById("scale"), this.store);
+    this.list   = new StationListView(document.getElementById("stationList"), this.store);
+    this.map    = new MapView(document.getElementById("map"),
+                              document.getElementById("mapLegend"), this.store);
+    this.data   = new DataView(document.getElementById("jsonArea"), this.store);
+    this.session = new MediaSessionAdapter(this.player,
+                     () => this.step(-1), () => this.step(1));
+    this.editingId = null;
+    this._wire();
+    this._renderAll();
+    this.player.setVolume(0.8);
+    this.dial.setCurrent(null);
+  }
+
+  /* ---------- oppkobling ---------- */
+  _wire(){
+    /* lageret */
+    this.store.on("change", () => this._renderAll());
+
+    /* skala */
+    this.dial.on("settle", freq => {
+      const st = this.store.nearest(freq, 0.45);
+      if(st && (!this.player.station || st.id !== this.player.station.id)) this.tune(st);
+      else if(!st) this._setStatus("søker");
+    });
+    this.dial.on("step", dir => this.step(dir));
+    this.dial.on("toggle", () => this.player.toggle());
+
+    /* liste */
+    this.list.on("play",   id => this.tune(this.store.byId(id)));
+    this.list.on("fav",    id => this.store.toggleFavorite(id));
+    this.list.on("edit",   id => this.startEdit(id));
+    this.list.on("delete", id => {
+      const st = this.store.byId(id);
+      if(!st) return;
+      if(!confirm(`Slette ${st.name}?`)) return;
+      if(this.player.station && this.player.station.id === id) this.player.stop();
+      this.store.remove(id);
+      toast(`Slettet ${st.name}`);
+    });
+
+    /* kart */
+    this.map.on("select", id => {
+      this.tune(this.store.byId(id));
+    });
+
+    /* spiller */
+    this.player.on("state", ({state}) => this._onPlayerState(state));
+    this.player.on("station", st => {
+      this.dial.setCurrent(st);
+      this.list.setCurrent(st ? st.id : null);
+      this.map.setCurrent(st ? st.id : null);
+      this._renderReadout(st);
+    });
+
+    /* transport */
+    document.getElementById("playBtn").onclick = () => {
+      if(!this.player.station){
+        const first = this.store.all().find(s => s.favorite) || this.store.all()[0];
+        if(first) return this.tune(first);
+      }
+      this.player.toggle();
+    };
+    document.getElementById("prevBtn").onclick = () => this.step(-1);
+    document.getElementById("nextBtn").onclick = () => this.step(1);
+
+    const vol = document.getElementById("vol");
+    vol.oninput = () => {
+      this.player.setVolume(vol.value / 100);
+      document.getElementById("volReadout").textContent = vol.value;
+    };
+
+    /* søk */
+    document.getElementById("search").oninput = ev => this.list.setQuery(ev.target.value);
+
+    /* skjema */
+    document.getElementById("saveStation").onclick = () => this.saveStation();
+    document.getElementById("cancelEdit").onclick  = () => this.cancelEdit();
+
+    /* data */
+    document.getElementById("applyJson").onclick = () => {
+      this.data.apply();
+    };
+    this.data.on("applied", () => toast("Stasjonslista er oppdatert"));
+    document.getElementById("exportJson").onclick = () => {
+      this.data.export(); toast("Eksporterte stations.json");
+    };
+    document.getElementById("importJson").onclick = () =>
+      document.getElementById("fileInput").click();
+    document.getElementById("fileInput").onchange = ev => {
+      const file = ev.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        document.getElementById("jsonArea").value = reader.result;
+        this.data.apply();
+      };
+      reader.readAsText(file);
+      ev.target.value = "";
+    };
+    document.getElementById("resetJson").onclick = () => {
+      this.store.replaceFrom({stations:DEFAULT_STATIONS});
+      toast("Tilbakestilte til standardlista");
+    };
+
+    /* faner */
+    const tabs = Array.from(document.querySelectorAll(".tab"));
+    tabs.forEach(tab => {
+      tab.onclick = () => {
+        tabs.forEach(t => {
+          const on = t === tab;
+          t.setAttribute("aria-selected", on);
+          document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+        });
+        if(tab.id === "tab-map") this.map.render();
+        if(tab.id === "tab-data") this.data.refresh();
+      };
+      tab.onkeydown = ev => {
+        const i = tabs.indexOf(tab);
+        if(ev.key === "ArrowRight") tabs[(i+1) % tabs.length].focus();
+        else if(ev.key === "ArrowLeft") tabs[(i-1+tabs.length) % tabs.length].focus();
+      };
+    });
+  }
+
+  /* ---------- handlinger ---------- */
+  tune(station){
+    if(!station) return;
+    this.player.load(station, true);
+  }
+  step(dir){
+    const next = this.store.neighbour(this.player.station, dir);
+    if(next) this.tune(next);
+  }
+
+  startEdit(id){
+    const st = this.store.byId(id);
+    if(!st) return;
+    this.editingId = id;
+    document.getElementById("editorTitle").textContent = "Rediger " + st.name;
+    document.getElementById("f-name").value  = st.name;
+    document.getElementById("f-url").value   = st.url;
+    document.getElementById("f-freq").value  = st.frequency;
+    document.getElementById("f-city").value  = st.city;
+    document.getElementById("f-genre").value = st.genre;
+    document.getElementById("f-lat").value   = st.lat ?? "";
+    document.getElementById("f-lon").value   = st.lon ?? "";
+    document.getElementById("f-color").value = st.color;
+    document.getElementById("cancelEdit").hidden = false;
+    document.getElementById("f-name").focus();
+  }
+  cancelEdit(){
+    this.editingId = null;
+    document.getElementById("editorTitle").textContent = "Legg til stasjon";
+    ["f-name","f-url","f-freq","f-city","f-genre","f-lat","f-lon"]
+      .forEach(id => document.getElementById(id).value = "");
+    document.getElementById("cancelEdit").hidden = true;
+  }
+  saveStation(){
+    const val = id => document.getElementById(id).value.trim();
+    const name = val("f-name");
+    if(!name){ toast("Stasjonen trenger et navn"); document.getElementById("f-name").focus(); return; }
+    const data = {
+      name, url: val("f-url"),
+      frequency: val("f-freq") || 87.5,
+      city: val("f-city"), genre: val("f-genre"),
+      lat: val("f-lat") === "" ? null : val("f-lat"),
+      lon: val("f-lon") === "" ? null : val("f-lon"),
+      color: document.getElementById("f-color").value
+    };
+    if(this.editingId){
+      this.store.update(this.editingId, data);
+      toast("Lagret " + name);
+    }else{
+      this.store.add(data);
+      toast("La til " + name);
+    }
+    this.cancelEdit();
+  }
+
+  /* ---------- visning ---------- */
+  _onPlayerState(state){
+    const text = {
+      idle:"klar", loading:"kobler til…", playing:"spiller",
+      paused:"pauset", error:"feil på strømmen"
+    }[state] || state;
+    this._setStatus(text, state);
+    const live = state === "playing" || state === "loading";
+    const onair = document.getElementById("onair");
+    onair.dataset.live = live;
+    document.getElementById("onairText").textContent = live ? "på lufta" : "av lufta";
+    document.getElementById("playBtn").textContent = live ? "Pause" : "Spill";
+    if(state === "error"){
+      const st = this.player.station;
+      document.getElementById("dialSub").textContent =
+        st && st.url ? "strømmen svarte ikke — sjekk URL-en i Data-fanen"
+                     : "stasjonen mangler URL";
+    }
+  }
+  _setStatus(text, state = "idle"){
+    const el = document.getElementById("status");
+    el.textContent = text;
+    el.dataset.state = state;
+  }
+  _renderReadout(st){
+    document.getElementById("freqReadout").innerHTML =
+      (st ? st.frequency.toFixed(1) : this.dial.freq.toFixed(1)) + "<small>MHz</small>";
+    document.getElementById("dialName").textContent = st ? st.name : "Ingen stasjon";
+    document.getElementById("dialSub").textContent =
+      st ? [st.city, st.genre].filter(Boolean).join(" · ") || "—"
+         : "vri på skalaen for å søke";
+  }
+  _renderAll(){
+    this.dial.render();
+    this.list.render();
+    this.map.render();
+    this._renderReadout(this.player.station);
+    if(!document.getElementById("panel-data").hidden) this.data.refresh();
+  }
+}
+
+/* frekvensvisning oppdateres også når man bare drar på skala */
+document.addEventListener("DOMContentLoaded", () => {
+  const app = new Application();
+  app.dial.on("tune", f => {
+    const near = app.store.nearest(f, 0.45);
+    document.getElementById("freqReadout").innerHTML = f.toFixed(1) + "<small>MHz</small>";
+    if(!near){
+      document.getElementById("dialName").textContent = "— — —";
+      document.getElementById("dialSub").textContent = "mellom to kanaler";
+    }else{
+      document.getElementById("dialName").textContent = near.name;
+      document.getElementById("dialSub").textContent =
+        [near.city, near.genre].filter(Boolean).join(" · ");
+    }
+  });
+  window.gnomeRadio = app;   // nyttig i konsollet
+});
+</script>
+</body>
+</html>

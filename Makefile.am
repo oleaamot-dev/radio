@@ -52,4 +52,7 @@ ChangeLog:
 
 dist: ChangeLog
 
+distclean-local:
+	rm -f po/.intltool-merge-cache po/.intltool-merge-cache.lock
+
 .PHONY: ChangeLog

@@ -164,7 +164,7 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(srcdir)/gnome-radio.spec.in \
 	$(top_srcdir)/help/C/version.xml.in ABOUT-NLS AUTHORS COPYING \
 	ChangeLog INSTALL NEWS README THANKS TODO compile config.guess \
-	config.rpath config.sub install-sh ltmain.sh missing
+	config.rpath config.sub depcomp install-sh ltmain.sh missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -305,10 +305,10 @@ OTOOL64 =
 PACKAGE = gnome-radio
 PACKAGE_BUGREPORT = 
 PACKAGE_NAME = gnome-radio
-PACKAGE_STRING = gnome-radio 84.0.0
+PACKAGE_STRING = gnome-radio 85.0.0
 PACKAGE_TARNAME = gnome-radio
 PACKAGE_URL = 
-PACKAGE_VERSION = 84.0.0
+PACKAGE_VERSION = 85.0.0
 PATH_SEPARATOR = :
 PKG_CONFIG = /usr/bin/pkg-config
 PKG_CONFIG_LIBDIR = 
@@ -323,7 +323,7 @@ SET_MAKE =
 SHELL = /bin/sh
 STRIP = strip
 USE_NLS = yes
-VERSION = 84.0.0
+VERSION = 85.0.0
 XGETTEXT = /usr/bin/xgettext
 XMLLINT = xmllint
 YELP_LC_DIST = true
@@ -844,7 +844,7 @@ distclean: distclean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -f Makefile
 distclean-am: clean-am distclean-generic distclean-hdr \
-	distclean-libtool distclean-tags
+	distclean-libtool distclean-local distclean-tags
 
 dvi: dvi-recursive
 
@@ -914,16 +914,16 @@ uninstall-am:
 	dist-all dist-bzip2 dist-bzip3 dist-gzip dist-lzip dist-shar \
 	dist-tarZ dist-xz dist-zip dist-zstd distcheck distclean \
 	distclean-generic distclean-hdr distclean-libtool \
-	distclean-tags distcleancheck distdir distuninstallcheck dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-data install-data-am install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
-	installcheck installcheck-am installdirs installdirs-am \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am
+	distclean-local distclean-tags distcleancheck distdir \
+	distuninstallcheck dvi dvi-am html html-am info info-am \
+	install install-am install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	installdirs-am maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+	ps ps-am tags tags-am uninstall uninstall-am
 
 .PRECIOUS: Makefile
 
@@ -937,6 +937,9 @@ ChangeLog:
 	fi
 
 dist: ChangeLog
+
+distclean-local:
+	rm -f po/.intltool-merge-cache po/.intltool-merge-cache.lock
 
 .PHONY: ChangeLog
 

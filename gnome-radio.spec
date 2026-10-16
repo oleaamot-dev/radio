@@ -1,5 +1,5 @@
 Name:           gnome-radio
-Version:        84.0.0
+Version:        85.0.0
 Release:        1%{?dist}
 Summary:        Radio
 License:        GPLv3+
@@ -95,6 +95,9 @@ desktop-file-validate %{buildroot}/%{_datadir}/applications/%{name}.desktop
 %{_mandir}/man1/%{name}.1*
 
 %changelog
+* Fri Oct 16 2026 Ole Aamot <ole@aamot.org> - 85.0.0-1
+- Stable gnome-radio 85.0.0 with NPR (United States of America)
+
 * Thu Oct 01 2026 Ole Aamot <olekaa@ifi.uio.no> - 84.0.0-1
 - Stable gnome-radio 84.0.0 with Clearmount Institute (Norge)
 
