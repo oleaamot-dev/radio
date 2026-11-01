@@ -1,3 +1,40 @@
+commit 74c5bc2a9bb878bf74fe22d4f36f3ac3f0639662
+Author: Ole Aamot <ole.aamot@aamotinnovation.com>
+Date:   Fri Oct 16 05:55:39 2026 +0200
+
+    GNOME Radio version 85.0 (gnome-radio) [http://www.gnomeradio.org]
+
+ ChangeLog                           |   16 +
+ Makefile                            |   33 +-
+ Makefile.am                         |    3 +
+ Makefile.in                         |   27 +-
+ NEWS                                |    9 +
+ README                              |    4 +-
+ aclocal.m4                          |    4 +-
+ config.guess                        |   17 +-
+ config.sub                          |   11 +-
+ configure                           | 3078 ++++++++++++++++-------------------
+ configure.ac                        |    2 +-
+ data/gnome-radio.appdata.xml.in     |    8 +-
+ data/gnome-radio.desktop            |    2 +-
+ data/gnome-radio.desktop.in         |    2 +-
+ data/gnome-radio.desktop.in.in      |    2 +-
+ data/gtk-radio.desktop.in.in        |    2 +-
+ data/org.gnome.Radio.appdata.xml.in |    4 +-
+ data/radio-beamy.appdata.xml.in     |    4 +-
+ gnome-radio.spec                    |    5 +-
+ gnome-radio.spec.in                 |    3 +
+ oop/Makefile.am                     |    2 +
+ oop/Makefile.in                     |  660 ++++++++
+ src/gnome-radio.c                   |    4 +-
+ src/gnome-radio.xml                 |    2 +-
+ src/gtk-radio.c                     |    4 +-
+ src/gtk-radio.xml                   |    2 +-
+ src/internet-radio-locator.xml      |    2 +-
+ www/gnome-radio-oop.html            | 1283 +++++++++++++++
+ www/longwave.html                   |  950 +++++++++++
+ 29 files changed, 4446 insertions(+), 1699 deletions(-)
+
 commit f20933fb7f22818aa571915cc25aa0c896b45fee
 Author: Ole Aamot <ole@aamot.org>
 Date:   Sat Oct 10 07:31:53 2026 +0200

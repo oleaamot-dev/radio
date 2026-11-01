@@ -164,7 +164,7 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(srcdir)/gnome-radio.spec.in \
 	$(top_srcdir)/help/C/version.xml.in ABOUT-NLS AUTHORS COPYING \
 	ChangeLog INSTALL NEWS README THANKS TODO compile config.guess \
-	config.rpath config.sub depcomp install-sh ltmain.sh missing
+	config.rpath config.sub install-sh ltmain.sh missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -249,9 +249,9 @@ FILECMD = file
 GETTEXT_PACKAGE = gnome-radio
 GMOFILES = 
 GMSGFMT = /usr/bin/msgfmt
-GNOME_RADIO_CFLAGS = -I/usr/include/champlain-0.12 -I/usr/include/clutter-gtk-1.0 -I/usr/include/libsoup-3.0 -I/usr/include/clutter-1.0 -I/usr/include/cogl -I/usr/include/json-glib-1.0 -I/usr/include/geocode-glib-2.0 -I/usr/include/goocanvas-2.0 -I/usr/include/gstreamer-1.0 -I/usr/include/libdrm -I/usr/include/orc-0.4 -I/usr/include/gtk-3.0 -I/usr/include/pango-1.0 -I/usr/include/cloudproviders -I/usr/include/cairo -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/glycin-2 -I/usr/include/at-spi2-atk/2.0 -I/usr/include/at-spi-2.0 -I/usr/include/atk-1.0 -I/usr/lib64/pkgconfig/../../include/dbus-1.0 -I/usr/lib64/pkgconfig/../../lib64/dbus-1.0/include -I/usr/include/libgeoclue-2.0 -I/usr/include/gio-unix-2.0 -I/usr/include/libmount -I/usr/include/blkid -I/usr/include/fribidi -I/usr/include/libxml2 -I/usr/include/pixman-1 -I/usr/include/harfbuzz -I/usr/include/freetype2 -I/usr/include/libpng16 -DWITH_GZFILEOP -I/usr/include/glib-2.0 -I/usr/lib64/glib-2.0/include -I/usr/include/sysprof-6 -pthread
-GNOME_RADIO_LIBS = -lchamplain-gtk-0.12 -lclutter-gtk-1.0 -lchamplain-0.12 -lclutter-1.0 -lcogl-path -lcogl-pango -lcogl -lgbm -ljson-glib-1.0 -lwayland-server -lgeocode-glib-2 -lgoocanvas-2.0 -lgstplayer-1.0 -lgsttag-1.0 -lgstvideo-1.0 -lgstbase-1.0 -ldrm -lgstreamer-1.0 -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lXrandr -lXcomposite -lXdamage -lcairo-gobject -lgdk_pixbuf-2.0 -lXi -lXfixes -latk-1.0 -lxkbcommon -lwayland-cursor -lwayland-egl -lwayland-client -lm -lEGL -lgeoclue-2 -lpangoft2-1.0 -lpango-1.0 -lgio-2.0 -lgmodule-2.0 -pthread -lcairo -lfontconfig -lxml2 -lXext -lX11 -lharfbuzz -lfreetype -lz -lgobject-2.0 -lglib-2.0
-GNOME_RADIO_PKG_DEPS = champlain-gtk-0.12 geocode-glib-2.0 glib-2.0 gobject-2.0 gstreamer-1.0 gstreamer-player-1.0 gstreamer-plugins-bad-1.0 gstreamer-plugins-base-1.0 gstreamer-plugins-good-1.0 gstreamer-video-1.0 gtk+-3.0 geoclue-2.0 libgeoclue-2.0 libxml-2.0 pangoft2
+GNOME_RADIO_CFLAGS = -I/usr/include/champlain-0.12 -I/usr/include/clutter-gtk-1.0 -I/usr/include/clutter-1.0 -I/usr/include/cogl -I/usr/include/json-glib-1.0 -I/usr/include/geocode-glib-2.0 -I/usr/include/goocanvas-2.0 -I/usr/include/gstreamer-1.0 -I/usr/include/libdrm -I/usr/include/orc-0.4 -I/usr/include/gtk-3.0 -I/usr/include/pango-1.0 -I/usr/include/cloudproviders -I/usr/include/cairo -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/glycin-2 -I/usr/include/at-spi2-atk/2.0 -I/usr/include/at-spi-2.0 -I/usr/include/atk-1.0 -I/usr/lib64/pkgconfig/../../include/dbus-1.0 -I/usr/lib64/pkgconfig/../../lib64/dbus-1.0/include -I/usr/include/libgeoclue-2.0 -I/usr/include/gio-unix-2.0 -I/usr/include/libsoup-3.0 -I/usr/include/libmount -I/usr/include/blkid -I/usr/include/fribidi -I/usr/include/libxml2 -I/usr/include/pixman-1 -I/usr/include/harfbuzz -I/usr/include/freetype2 -I/usr/include/libpng16 -DWITH_GZFILEOP -I/usr/include/glib-2.0 -I/usr/lib64/glib-2.0/include -I/usr/include/sysprof-6 -pthread
+GNOME_RADIO_LIBS = -lchamplain-gtk-0.12 -lclutter-gtk-1.0 -lchamplain-0.12 -lclutter-1.0 -lcogl-path -lcogl-pango -lcogl -lgbm -ljson-glib-1.0 -lwayland-server -lgeocode-glib-2 -lgoocanvas-2.0 -lgstplayer-1.0 -lgsttag-1.0 -lgstvideo-1.0 -lgstbase-1.0 -ldrm -lgstreamer-1.0 -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lXrandr -lXcomposite -lXdamage -lcairo-gobject -lgdk_pixbuf-2.0 -lXi -lXfixes -latk-1.0 -lxkbcommon -lwayland-cursor -lwayland-egl -lwayland-client -lm -lEGL -lgeoclue-2 -lsoup-3.0 -lpangoft2-1.0 -lpango-1.0 -lgio-2.0 -lgmodule-2.0 -pthread -lcairo -lfontconfig -lxml2 -lXext -lX11 -lharfbuzz -lfreetype -lz -lgobject-2.0 -lglib-2.0
+GNOME_RADIO_PKG_DEPS = champlain-gtk-0.12 geocode-glib-2.0 glib-2.0 gobject-2.0 gstreamer-1.0 gstreamer-player-1.0 gstreamer-plugins-bad-1.0 gstreamer-plugins-base-1.0 gstreamer-plugins-good-1.0 gstreamer-video-1.0 gtk+-3.0 geoclue-2.0 libgeoclue-2.0 libsoup-3.0 libxml-2.0 pangoft2
 GREP = /usr/bin/grep
 GTKDOC_CHECK = gtkdoc-check.test
 GTKDOC_CHECK_PATH = /usr/bin/gtkdoc-check
@@ -305,10 +305,10 @@ OTOOL64 =
 PACKAGE = gnome-radio
 PACKAGE_BUGREPORT = 
 PACKAGE_NAME = gnome-radio
-PACKAGE_STRING = gnome-radio 85.0.0
+PACKAGE_STRING = gnome-radio 85.0.1
 PACKAGE_TARNAME = gnome-radio
 PACKAGE_URL = 
-PACKAGE_VERSION = 85.0.0
+PACKAGE_VERSION = 85.0.1
 PATH_SEPARATOR = :
 PKG_CONFIG = /usr/bin/pkg-config
 PKG_CONFIG_LIBDIR = 
@@ -323,7 +323,7 @@ SET_MAKE =
 SHELL = /bin/sh
 STRIP = strip
 USE_NLS = yes
-VERSION = 85.0.0
+VERSION = 85.0.1
 XGETTEXT = /usr/bin/xgettext
 XMLLINT = xmllint
 YELP_LC_DIST = true
